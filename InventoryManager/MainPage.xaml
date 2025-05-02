@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="InventoryManager.MainPage">
+
+    <VerticalStackLayout HorizontalOptions="Center">
+        <Label Text="App Name" HorizontalTextAlignment="Center" Padding="50"/>
+
+        <VerticalStackLayout Spacing="20" VerticalOptions="Center">
+            <Entry x:Name="sUser" Placeholder="Utilizator" WidthRequest="150" PlaceholderColor="DarkGray"/>
+            <Entry x:Name="sPassword" Placeholder="Parola" WidthRequest="150" PlaceholderColor="DarkGray"/>
+
+            <HorizontalStackLayout Spacing="20" HorizontalOptions="Center">
+                <Button x:Name="buttonLogIn" Text="Log in"/>
+                <Button x:Name="ButtonSignIn" Text="Sign in" BackgroundColor="DarkGrey"/>
+            </HorizontalStackLayout>
+
+        </VerticalStackLayout>
+    </VerticalStackLayout>
+
+</ContentPage>
