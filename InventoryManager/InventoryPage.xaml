@@ -1,0 +1,382 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- InventoryPage.xaml - FIXED Table Layout with Border and Corrected Syntax -->
+<!-- This version uses Border instead of Frame and fixes the corner radius and Entry issues -->
+
+<ContentPage x:Class="InventoryManager.InventoryPage"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:converters="clr-namespace:InventoryManager.Converters"
+             Title="Inventory Management"
+             BackgroundColor="White">
+
+    <!-- Define page resources including converters -->
+    <ContentPage.Resources>
+        <ResourceDictionary>
+            <converters:BoolToColorConverter x:Key="BoolToColorConverter" />
+        </ResourceDictionary>
+    </ContentPage.Resources>
+
+    <!-- RefreshView for pull-to-refresh functionality -->
+    <RefreshView x:Name="RefreshView" 
+                 Refreshing="OnRefreshing"
+                 RefreshColor="DarkBlue">
+
+        <ScrollView>
+            <VerticalStackLayout Spacing="15" Padding="15">
+
+                <!-- Header with Quick Stats -->
+                <Border BackgroundColor="DarkBlue" 
+                        StrokeShape="RoundRectangle 10"
+                        Stroke="Transparent"
+                        Padding="20"
+                        Shadow="{Shadow Brush=Black, Offset='2,2', Radius=4, Opacity=0.3}">
+                    <Grid RowDefinitions="Auto,Auto" 
+                          ColumnDefinitions="*,*,*">
+
+                        <Label Grid.Row="0" Grid.ColumnSpan="3"
+                               Text="Inventory Overview"
+                               FontSize="18"
+                               FontAttributes="Bold"
+                               TextColor="White"
+                               HorizontalOptions="Center"
+                               Margin="0,0,0,10" />
+
+                        <StackLayout Grid.Row="1" Grid.Column="0" HorizontalOptions="Center">
+                            <Label x:Name="TotalItemsLabel"
+                                   Text="0"
+                                   FontSize="24"
+                                   FontAttributes="Bold"
+                                   TextColor="White"
+                                   HorizontalOptions="Center" />
+                            <Label Text="Total Items"
+                                   FontSize="12"
+                                   TextColor="LightGray"
+                                   HorizontalOptions="Center" />
+                        </StackLayout>
+
+                        <StackLayout Grid.Row="1" Grid.Column="1" HorizontalOptions="Center">
+                            <Label x:Name="LowStockLabel"
+                                   Text="0"
+                                   FontSize="24"
+                                   FontAttributes="Bold"
+                                   TextColor="Orange"
+                                   HorizontalOptions="Center" />
+                            <Label Text="Low Stock"
+                                   FontSize="12"
+                                   TextColor="LightGray"
+                                   HorizontalOptions="Center" />
+                        </StackLayout>
+
+                        <StackLayout Grid.Row="1" Grid.Column="2" HorizontalOptions="Center">
+                            <Label x:Name="TotalValueLabel"
+                                   Text="$0"
+                                   FontSize="24"
+                                   FontAttributes="Bold"
+                                   TextColor="LightGreen"
+                                   HorizontalOptions="Center" />
+                            <Label Text="Total Value"
+                                   FontSize="12"
+                                   TextColor="LightGray"
+                                   HorizontalOptions="Center" />
+                        </StackLayout>
+                    </Grid>
+                </Border>
+
+                <!-- Filter Section -->
+                <Border BackgroundColor="LightGray" 
+                        StrokeShape="RoundRectangle 10"
+                        Stroke="Transparent"
+                        Padding="15">
+                    <StackLayout Spacing="10">
+
+                        <!-- Search Bar -->
+                        <SearchBar x:Name="SearchBar"
+                                   Placeholder="Search items..."
+                                   TextChanged="OnSearchTextChanged"
+                                   BackgroundColor="White" />
+
+                        <!-- Filter Controls -->
+                        <Grid ColumnDefinitions="*,*,*" ColumnSpacing="10">
+
+                            <!-- Location Filter -->
+                            <StackLayout Grid.Column="0">
+                                <Label Text="Location" FontSize="12" FontAttributes="Bold" />
+                                <Picker x:Name="LocationPicker"
+                                        Title="All"
+                                        SelectedIndexChanged="OnLocationFilterChanged"
+                                        BackgroundColor="White"
+                                        FontSize="12" />
+                            </StackLayout>
+
+                            <!-- Category Filter -->
+                            <StackLayout Grid.Column="1">
+                                <Label Text="Category" FontSize="12" FontAttributes="Bold" />
+                                <Picker x:Name="CategoryPicker"
+                                        Title="All"
+                                        SelectedIndexChanged="OnCategoryFilterChanged"
+                                        BackgroundColor="White"
+                                        FontSize="12" />
+                            </StackLayout>
+
+                            <!-- Quick Filters -->
+                            <StackLayout Grid.Column="2" VerticalOptions="End">
+                                <CheckBox x:Name="LowStockCheckBox"
+                                          CheckedChanged="OnLowStockFilterChanged"
+                                          Color="DarkBlue" />
+                                <Label Text="Low Stock Only" FontSize="10" />
+                            </StackLayout>
+                        </Grid>
+
+                    </StackLayout>
+                </Border>
+
+                <!-- Inventory Table -->
+                <Border BackgroundColor="White" 
+                        StrokeShape="RoundRectangle 10"
+                        Stroke="LightGray"
+                        StrokeThickness="1"
+                        Padding="0"
+                        Shadow="{Shadow Brush=Black, Offset='2,2', Radius=4, Opacity=0.1}">
+
+                    <StackLayout>
+                        <!-- Table Header -->
+                        <Border BackgroundColor="DarkBlue" 
+                                StrokeShape="RoundRectangle 10,10,0,0"
+                                Stroke="Transparent"
+                                Padding="10,15">
+                            <Grid ColumnDefinitions="2*,*,*,*,1.5*,*"
+                                  ColumnSpacing="5">
+                                <Label Grid.Column="0" Text="Item" 
+                                       FontAttributes="Bold" TextColor="White" FontSize="14" />
+                                <Label Grid.Column="1" Text="Code" 
+                                       FontAttributes="Bold" TextColor="White" FontSize="14" />
+                                <Label Grid.Column="2" Text="Quantity" 
+                                       FontAttributes="Bold" TextColor="White" FontSize="14" 
+                                       HorizontalTextAlignment="Center" />
+                                <Label Grid.Column="3" Text="Min/Max" 
+                                       FontAttributes="Bold" TextColor="White" FontSize="14" 
+                                       HorizontalTextAlignment="Center" />
+                                <Label Grid.Column="4" Text="Location" 
+                                       FontAttributes="Bold" TextColor="White" FontSize="14" />
+                                <Label Grid.Column="5" Text="Status" 
+                                       FontAttributes="Bold" TextColor="White" FontSize="14" 
+                                       HorizontalTextAlignment="Center" />
+                            </Grid>
+                        </Border>
+
+                        <!-- Loading Indicator -->
+                        <ActivityIndicator x:Name="LoadingIndicator"
+                                           IsVisible="False"
+                                           IsRunning="False"
+                                           Color="DarkBlue"
+                                           HeightRequest="50" />
+
+                        <!-- Table Content -->
+                        <CollectionView x:Name="InventoryCollectionView"
+                                        SelectionMode="None"
+                                        BackgroundColor="Transparent"
+                                        ItemSizingStrategy="MeasureAllItems">
+
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate>
+                                    <!-- Table Row -->
+                                    <Grid Padding="10,8"
+                                          ColumnDefinitions="2*,*,*,*,1.5*,*"
+                                          ColumnSpacing="5"
+                                          BackgroundColor="White">
+
+                                        <!-- Alternate row background -->
+                                        <Grid.Triggers>
+                                            <DataTrigger TargetType="Grid" 
+                                                        Binding="{Binding IsOddRow}" 
+                                                        Value="True">
+                                                <Setter Property="BackgroundColor" Value="#F8F9FA" />
+                                            </DataTrigger>
+                                        </Grid.Triggers>
+
+                                        <!-- Item Name and Description -->
+                                        <StackLayout Grid.Column="0" VerticalOptions="Center">
+                                            <Label Text="{Binding Name}"
+                                                   FontSize="14"
+                                                   FontAttributes="Bold"
+                                                   TextColor="Black"
+                                                   LineBreakMode="TailTruncation" />
+                                            <Label Text="{Binding Description}"
+                                                   FontSize="10"
+                                                   TextColor="Gray"
+                                                   LineBreakMode="TailTruncation"
+                                                   MaxLines="1" />
+                                        </StackLayout>
+
+                                        <!-- Item Code -->
+                                        <Label Grid.Column="1"
+                                               Text="{Binding ItemCode}"
+                                               FontSize="12"
+                                               TextColor="DarkGray"
+                                               VerticalOptions="Center"
+                                               LineBreakMode="TailTruncation" />
+
+                                        <!-- Editable Quantity Cell -->
+                                        <StackLayout Grid.Column="2" 
+                                                    VerticalOptions="Center"
+                                                    HorizontalOptions="Center">
+
+                                            <!-- Display Mode - Shows current quantity -->
+                                            <Border x:Name="QuantityDisplayBorder"
+                                                    BackgroundColor="{Binding IsLowStock, Converter={StaticResource BoolToColorConverter}}"
+                                                    StrokeShape="RoundRectangle 5"
+                                                    Stroke="Transparent"
+                                                    Padding="8,4"
+                                                    InputTransparent="False">
+                                                <Border.GestureRecognizers>
+                                                    <TapGestureRecognizer Tapped="OnQuantityTapped" 
+                                                                         CommandParameter="{Binding}" />
+                                                </Border.GestureRecognizers>
+
+                                                <StackLayout Orientation="Horizontal" Spacing="2">
+                                                    <Label FontSize="12" 
+                                                           FontAttributes="Bold" 
+                                                           TextColor="White"
+                                                           VerticalOptions="Center">
+                                                        <Label.Text>
+                                                            <MultiBinding StringFormat="{}{0} {1}">
+                                                                <Binding Path="CurrentQuantity" />
+                                                                <Binding Path="Unit" />
+                                                            </MultiBinding>
+                                                        </Label.Text>
+                                                    </Label>
+                                                </StackLayout>
+                                            </Border>
+
+                                            <!-- Edit Mode - Entry for editing quantity -->
+                                            <Entry x:Name="QuantityEditEntry"
+                                                   IsVisible="False"
+                                                   Text="{Binding CurrentQuantity}"
+                                                   Keyboard="Numeric"
+                                                   FontSize="12"
+                                                   HorizontalTextAlignment="Center"
+                                                   WidthRequest="80"
+                                                   HeightRequest="35"
+                                                   Completed="OnQuantityEditCompleted"
+                                                   Unfocused="OnQuantityEditUnfocused" />
+                                        </StackLayout>
+
+                                        <!-- Min/Max Quantities -->
+                                        <StackLayout Grid.Column="3" 
+                                                    VerticalOptions="Center"
+                                                    HorizontalOptions="Center">
+                                            <Label FontSize="10" 
+                                                   TextColor="DarkGray"
+                                                   HorizontalTextAlignment="Center">
+                                                <Label.Text>
+                                                    <MultiBinding StringFormat="Min: {0}">
+                                                        <Binding Path="MinimumQuantity" />
+                                                    </MultiBinding>
+                                                </Label.Text>
+                                            </Label>
+                                            <Label FontSize="10" 
+                                                   TextColor="DarkGray"
+                                                   HorizontalTextAlignment="Center">
+                                                <Label.Text>
+                                                    <MultiBinding StringFormat="Max: {0}">
+                                                        <Binding Path="MaximumQuantity" />
+                                                    </MultiBinding>
+                                                </Label.Text>
+                                            </Label>
+                                        </StackLayout>
+
+                                        <!-- Location and Category -->
+                                        <StackLayout Grid.Column="4" VerticalOptions="Center">
+                                            <Label Text="{Binding LocationDisplayName}"
+                                                   FontSize="11"
+                                                   TextColor="Blue"
+                                                   LineBreakMode="TailTruncation" />
+                                            <Label Text="{Binding Category}"
+                                                   FontSize="10"
+                                                   TextColor="Purple"
+                                                   LineBreakMode="TailTruncation" />
+                                        </StackLayout>
+
+                                        <!-- Status Indicator -->
+                                        <StackLayout Grid.Column="5" 
+                                                    VerticalOptions="Center"
+                                                    HorizontalOptions="Center">
+                                            <Label FontSize="16" 
+                                                   HorizontalTextAlignment="Center">
+                                                <Label.Text>
+                                                    <MultiBinding StringFormat="{}{0}">
+                                                        <Binding Path="IsLowStock" />
+                                                    </MultiBinding>
+                                                </Label.Text>
+                                                <Label.Triggers>
+                                                    <DataTrigger TargetType="Label" 
+                                                                Binding="{Binding IsLowStock}" 
+                                                                Value="True">
+                                                        <Setter Property="Text" Value="⚠️" />
+                                                    </DataTrigger>
+                                                    <DataTrigger TargetType="Label" 
+                                                                Binding="{Binding IsLowStock}" 
+                                                                Value="False">
+                                                        <Setter Property="Text" Value="✅" />
+                                                    </DataTrigger>
+                                                </Label.Triggers>
+                                            </Label>
+                                            <Label Text="{Binding TotalValue, StringFormat='${0:F2}'}"
+                                                   FontSize="9"
+                                                   TextColor="Green"
+                                                   HorizontalTextAlignment="Center" />
+                                        </StackLayout>
+
+                                        <!-- Row Separator -->
+                                        <BoxView Grid.ColumnSpan="6"
+                                                 BackgroundColor="LightGray"
+                                                 HeightRequest="1"
+                                                 VerticalOptions="End"
+                                                 Margin="0,5,0,0" />
+                                    </Grid>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+
+                            <!-- Empty State -->
+                            <CollectionView.EmptyView>
+                                <StackLayout Padding="20" HorizontalOptions="Center">
+                                    <Label Text="📋"
+                                           FontSize="48"
+                                           HorizontalOptions="Center" />
+                                    <Label Text="No inventory items found"
+                                           FontSize="16"
+                                           FontAttributes="Bold"
+                                           HorizontalOptions="Center"
+                                           TextColor="Gray" />
+                                    <Label Text="Try adjusting your filters"
+                                           FontSize="12"
+                                           HorizontalOptions="Center"
+                                           TextColor="Gray"
+                                           Margin="0,5,0,0" />
+                                </StackLayout>
+                            </CollectionView.EmptyView>
+
+                        </CollectionView>
+
+                    </StackLayout>
+                </Border>
+
+                <!-- Admin Actions (if needed) -->
+                <StackLayout x:Name="AdminActionsSection" 
+                             IsVisible="False" 
+                             Orientation="Horizontal" 
+                             Spacing="10">
+                    <Button x:Name="AddItemBtn"
+                            Text="➕ Add New Item"
+                            Clicked="OnAddItemClicked"
+                            BackgroundColor="Green"
+                            TextColor="White"
+                            CornerRadius="5"
+                            HorizontalOptions="FillAndExpand" />
+                </StackLayout>
+
+            </VerticalStackLayout>
+        </ScrollView>
+    </RefreshView>
+
+</ContentPage>

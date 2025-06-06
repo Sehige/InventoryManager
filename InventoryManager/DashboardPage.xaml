@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- DashboardPage.xaml - The Main Dashboard After Login -->
+<!-- This is your testing ground to verify that authentication and database operations work correctly -->
+<!-- It displays user information and allows you to see all registered users -->
+
+<ContentPage x:Class="InventoryManager.DashboardPage"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             Title="InventoryManager Dashboard"
+             BackgroundColor="White">
+
+    <!-- RefreshView allows pull-to-refresh functionality -->
+    <!-- This is a common mobile UI pattern that users expect -->
+    <RefreshView x:Name="RefreshView" 
+                 Refreshing="OnRefreshing"
+                 RefreshColor="DarkBlue">
+
+        <ScrollView>
+            <VerticalStackLayout Spacing="20" Padding="20">
+
+                <!-- Header Section -->
+                <!-- This welcomes the user and shows basic session info -->
+                <Frame BackgroundColor="DarkBlue" 
+                       Padding="20"
+                       CornerRadius="10"
+                       HasShadow="True">
+                    <StackLayout>
+                        <Label x:Name="WelcomeLabel" 
+                               Text="Loading..."
+                               FontSize="22"
+                               FontAttributes="Bold"
+                               TextColor="White"
+                               HorizontalOptions="Center" />
+                        <Label x:Name="CurrentTimeLabel"
+                               FontSize="14"
+                               TextColor="LightGray"
+                               HorizontalOptions="Center" />
+                    </StackLayout>
+                </Frame>
+
+                <!-- User Information Section -->
+                <!-- Shows details about the currently logged-in user -->
+                <Frame BackgroundColor="LightBlue" 
+                       Padding="20"
+                       CornerRadius="10"
+                       HasShadow="True">
+                    <StackLayout Spacing="10">
+                        <Label Text="Your Account Information" 
+                               FontSize="18" 
+                               FontAttributes="Bold"
+                               TextColor="DarkBlue" />
+
+                        <!-- User details will be populated from code-behind -->
+                        <Label x:Name="UserInfoLabel" 
+                               Text="Loading user information..."
+                               FontSize="14"
+                               TextColor="Black" />
+
+                        <!-- Session information -->
+                        <Label x:Name="SessionInfoLabel"
+                               Text=""
+                               FontSize="12"
+                               TextColor="Gray" />
+                    </StackLayout>
+                </Frame>
+
+                <!-- Database Status Section -->
+                <!-- This helps verify that your database connection is working -->
+                <Frame BackgroundColor="LightGreen" 
+                       Padding="20"
+                       CornerRadius="10"
+                       HasShadow="True">
+                    <StackLayout Spacing="15">
+                        <Label Text="Database Status" 
+                               FontSize="18" 
+                               FontAttributes="Bold"
+                               TextColor="DarkGreen" />
+
+                        <!-- Database connection status -->
+                        <Label x:Name="DatabaseStatusLabel" 
+                               Text="Checking database connection..."
+                               FontSize="14"
+                               TextColor="Black" />
+
+                        <!-- Button to refresh user list for testing -->
+                        <Button x:Name="RefreshUsersBtn" 
+                                Text="🔄 Refresh User List" 
+                                Clicked="OnRefreshUsersClicked"
+                                BackgroundColor="DarkGreen"
+                                TextColor="White"
+                                CornerRadius="5"
+                                HeightRequest="40" />
+
+                        <!-- Display list of all users in the system -->
+                        <Label x:Name="UsersListLabel" 
+                               Text=""
+                               FontSize="12"
+                               TextColor="Black" />
+                    </StackLayout>
+                </Frame>
+
+                <!-- System Statistics Section -->
+                <!-- Shows useful metrics about your system -->
+                <Frame BackgroundColor="LightYellow" 
+                       Padding="20"
+                       CornerRadius="10"
+                       HasShadow="True">
+                    <StackLayout Spacing="10">
+                        <Label Text="System Statistics" 
+                               FontSize="18" 
+                               FontAttributes="Bold"
+                               TextColor="DarkOrange" />
+
+                        <Label x:Name="SystemStatsLabel"
+                               Text="Loading statistics..."
+                               FontSize="14"
+                               TextColor="Black" />
+                    </StackLayout>
+                </Frame>
+
+                <!-- Quick Actions Section -->
+                <!-- Buttons for common administrative tasks -->
+                <Frame BackgroundColor="LightCyan" 
+                       Padding="20"
+                       CornerRadius="10"
+                       HasShadow="True">
+                    <StackLayout Spacing="15">
+                        <Label Text="Quick Actions" 
+                               FontSize="18" 
+                               FontAttributes="Bold"
+                               TextColor="DarkCyan" />
+
+                        <!-- Grid layout for action buttons -->
+                        <Grid RowDefinitions="Auto,Auto" 
+                              ColumnDefinitions="*,*"
+                              RowSpacing="10"
+                              ColumnSpacing="10">
+
+                            <!-- Test Database Button -->
+                            <Button Grid.Row="0" Grid.Column="0"
+                                    x:Name="TestDatabaseBtn"
+                                    Text="🔧 Test Database"
+                                    Clicked="OnTestDatabaseClicked"
+                                    BackgroundColor="Purple"
+                                    TextColor="White"
+                                    CornerRadius="5" />
+
+                            <!-- Create Test User Button -->
+                            <Button Grid.Row="0" Grid.Column="1"
+                                    x:Name="CreateTestUserBtn"
+                                    Text="👤 Create Test User"
+                                    Clicked="OnCreateTestUserClicked"
+                                    BackgroundColor="Orange"
+                                    TextColor="White"
+                                    CornerRadius="5" />
+
+                            <!-- View App Info Button -->
+                            <Button Grid.Row="1" Grid.Column="0"
+                                    x:Name="ViewAppInfoBtn"
+                                    Text="ℹ️ App Info"
+                                    Clicked="OnViewAppInfoClicked"
+                                    BackgroundColor="Gray"
+                                    TextColor="White"
+                                    CornerRadius="5" />
+
+                            <!-- Logout Button -->
+                            <Button Grid.Row="1" Grid.Column="1"
+                                    x:Name="LogoutBtn"
+                                    Text="🚪 Logout"
+                                    Clicked="OnLogoutClicked"
+                                    BackgroundColor="Red"
+                                    TextColor="White"
+                                    CornerRadius="5" />
+                        </Grid>
+                    </StackLayout>
+                </Frame>
+
+                <!-- Debug Information Section (helpful during development) -->
+                <!-- This section can be hidden in production but is useful for testing -->
+                <Frame BackgroundColor="LightPink" 
+                       Padding="20"
+                       CornerRadius="10"
+                       HasShadow="True">
+                    <StackLayout Spacing="10">
+                        <Label Text="Debug Information" 
+                               FontSize="18" 
+                               FontAttributes="Bold"
+                               TextColor="DarkRed" />
+
+                        <Label x:Name="DebugInfoLabel"
+                               Text="Debug info will appear here..."
+                               FontSize="12"
+                               TextColor="Black"
+                               LineBreakMode="WordWrap" />
+
+                        <Button x:Name="ClearDebugBtn"
+                                Text="Clear Debug Info"
+                                Clicked="OnClearDebugClicked"
+                                BackgroundColor="DarkRed"
+                                TextColor="White"
+                                CornerRadius="5"
+                                HeightRequest="35" />
+                    </StackLayout>
+                </Frame>
+
+            </VerticalStackLayout>
+        </ScrollView>
+    </RefreshView>
+
+</ContentPage>

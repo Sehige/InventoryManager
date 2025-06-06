@@ -1,21 +1,191 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
-<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+<!-- MainPage.xaml - The Login and Registration User Interface -->
+<!-- This XAML file defines the visual layout of your authentication screen -->
+<!-- Think of XAML as HTML for mobile apps - it describes how things look and where they're positioned -->
+
+<ContentPage x:Class="InventoryManager.MainPage"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="InventoryManager.MainPage">
+             Title="InventoryManager"
+             BackgroundColor="White">
 
-    <VerticalStackLayout HorizontalOptions="Center">
-        <Label Text="App Name" HorizontalTextAlignment="Center" Padding="50"/>
+    <!-- ScrollView allows the content to scroll if it's too tall for the screen -->
+    <!-- This is especially important on smaller devices or when the keyboard appears -->
+    <ScrollView>
 
-        <VerticalStackLayout Spacing="20" VerticalOptions="Center">
-            <Entry x:Name="sUser" Placeholder="Utilizator" WidthRequest="150" PlaceholderColor="DarkGray"/>
-            <Entry x:Name="sPassword" Placeholder="Parola" WidthRequest="150" PlaceholderColor="DarkGray"/>
+        <!-- VerticalStackLayout arranges all child elements in a vertical column -->
+        <!-- Spacing="25" puts 25 units of space between each element -->
+        <!-- Padding="30,0" adds 30 units of padding on left and right, 0 on top and bottom -->
+        <!-- VerticalOptions="Center" centers the entire content vertically on the screen -->
+        <VerticalStackLayout Spacing="25" Padding="30,0" VerticalOptions="Center">
 
-            <HorizontalStackLayout Spacing="20" HorizontalOptions="Center">
-                <Button x:Name="buttonLogIn" Text="Log in"/>
-                <Button x:Name="ButtonSignIn" Text="Sign in" BackgroundColor="DarkGrey"/>
-            </HorizontalStackLayout>
+            <!-- App Logo Section -->
+            <!-- Visual branding helps users recognize your app and makes it look professional -->
+            <Image Source="warehouse_icon.png" 
+                   SemanticProperties.Description="InventoryManager Logo"
+                   HeightRequest="100"
+                   HorizontalOptions="Center" />
+
+            <!-- App Title -->
+            <!-- This welcomes users and clearly identifies what app they're using -->
+            <Label x:Name="WelcomeLabel" 
+                   Text="Welcome to InventoryManager"
+                   FontSize="24"
+                   FontAttributes="Bold"
+                   TextColor="DarkBlue"
+                   HorizontalOptions="Center"
+                   HorizontalTextAlignment="Center" />
+
+            <!-- Login/Register Mode Toggle Buttons -->
+            <!-- These buttons let users switch between login and registration modes -->
+            <!-- We use a horizontal layout to put them side by side -->
+            <StackLayout Orientation="Horizontal" 
+                        HorizontalOptions="Center"
+                        Spacing="10">
+
+                <!-- Login Mode Button -->
+                <!-- x:Name allows us to reference this button in the code-behind file -->
+                <!-- Clicked="OnLoginModeClicked" connects this button to a method in the code -->
+                <Button x:Name="LoginModeBtn" 
+                        Text="Login" 
+                        Clicked="OnLoginModeClicked"
+                        BackgroundColor="DarkBlue"
+                        TextColor="White"
+                        WidthRequest="100"
+                        HeightRequest="40"
+                        CornerRadius="5" />
+
+                <!-- Register Mode Button -->
+                <!-- Initially gray because login mode is the default -->
+                <Button x:Name="RegisterModeBtn" 
+                        Text="Register" 
+                        Clicked="OnRegisterModeClicked"
+                        BackgroundColor="Gray"
+                        TextColor="White"
+                        WidthRequest="100"
+                        HeightRequest="40"
+                        CornerRadius="5" />
+            </StackLayout>
+
+            <!-- Input Fields Container -->
+            <!-- Frame creates a visual container with a border and background -->
+            <!-- This groups all the input fields together and makes them stand out -->
+            <Frame BackgroundColor="LightGray" 
+                   Padding="20"
+                   CornerRadius="10"
+                   HasShadow="True">
+
+                <!-- Container for all input fields -->
+                <StackLayout Spacing="15">
+
+                    <!-- Full Name Section (only visible during registration) -->
+                    <!-- x:Name allows us to show/hide this section programmatically -->
+                    <StackLayout x:Name="FullNameSection">
+                        <Label Text="Full Name" 
+                               FontAttributes="Bold"
+                               TextColor="DarkGray"
+                               FontSize="14" />
+                        <Entry x:Name="FullNameEntry" 
+                               Placeholder="Enter your full name"
+                               IsVisible="False"
+                               BackgroundColor="White"
+                               HeightRequest="45"
+                               FontSize="16" />
+                    </StackLayout>
+
+                    <!-- Username Section -->
+                    <!-- This field is always visible for both login and registration -->
+                    <StackLayout>
+                        <Label Text="Username" 
+                               FontAttributes="Bold"
+                               TextColor="DarkGray"
+                               FontSize="14" />
+                        <Entry x:Name="UsernameEntry" 
+                               Placeholder="Enter username"
+                               BackgroundColor="White"
+                               HeightRequest="45"
+                               FontSize="16"
+                               MaxLength="50" />
+                    </StackLayout>
+
+                    <!-- Password Section -->
+                    <!-- IsPassword="True" makes the text appear as dots for security -->
+                    <StackLayout>
+                        <Label Text="Password" 
+                               FontAttributes="Bold"
+                               TextColor="DarkGray"
+                               FontSize="14" />
+                        <Entry x:Name="PasswordEntry" 
+                               Placeholder="Enter password"
+                               IsPassword="True"
+                               BackgroundColor="White"
+                               HeightRequest="45"
+                               FontSize="16" />
+                    </StackLayout>
+
+                    <!-- Role Selection Section (only visible during registration) -->
+                    <!-- This picker allows new users to select their role in the system -->
+                    <StackLayout x:Name="RoleSection">
+                        <Label Text="Role" 
+                               FontAttributes="Bold"
+                               TextColor="DarkGray"
+                               FontSize="14" />
+                        <Picker x:Name="RolePicker" 
+                                Title="Select Role"
+                                IsVisible="False"
+                                BackgroundColor="White"
+                                HeightRequest="45"
+                                FontSize="16">
+                            <!-- ItemsSource defines the list of available roles -->
+                            <!-- These correspond to the roles we defined in our User model -->
+                            <Picker.ItemsSource>
+                                <x:Array Type="{x:Type x:String}">
+                                    <x:String>Operator</x:String>
+                                    <x:String>Manager</x:String>
+                                    <x:String>Admin</x:String>
+                                </x:Array>
+                            </Picker.ItemsSource>
+                        </Picker>
+                    </StackLayout>
+
+                </StackLayout>
+            </Frame>
+
+            <!-- Main Action Button -->
+            <!-- This button changes its text and function based on whether we're in login or register mode -->
+            <!-- x:Name="ActionButton" lets us change its properties from code -->
+            <Button x:Name="ActionButton" 
+                    Text="Login"
+                    Clicked="OnActionButtonClicked"
+                    BackgroundColor="Green"
+                    TextColor="White"
+                    FontSize="18"
+                    Padding="20,10"
+                    CornerRadius="8"
+                    HeightRequest="50"
+                    HorizontalOptions="FillAndExpand" />
+
+            <!-- Status and Error Messages -->
+            <!-- This label shows success messages (green) or error messages (red) -->
+            <!-- IsVisible="False" means it's hidden by default -->
+            <Label x:Name="StatusLabel" 
+                   TextColor="Red"
+                   FontSize="14"
+                   HorizontalOptions="Center"
+                   HorizontalTextAlignment="Center"
+                   IsVisible="False"
+                   Padding="10,5" />
+
+            <!-- Additional Help Text -->
+            <!-- This provides helpful information to users -->
+            <Label Text="Default admin login: admin / admin123"
+                   FontSize="12"
+                   TextColor="Gray"
+                   HorizontalOptions="Center"
+                   HorizontalTextAlignment="Center"
+                   Margin="0,20,0,0" />
 
         </VerticalStackLayout>
-    </VerticalStackLayout>
+    </ScrollView>
 
 </ContentPage>

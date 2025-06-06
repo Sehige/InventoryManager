@@ -1,14 +1,193 @@
 ﻿<?xml version = "1.0" encoding = "UTF-8" ?>
-<Application xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+<!-- App.xaml - Global Application Resources and Styling -->
+<!-- This file defines colors, styles, and other resources that are used throughout your entire app -->
+<!-- Think of it as your app's design system that ensures consistency across all pages -->
+
+<Application x:Class="InventoryManager.App"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             xmlns:local="clr-namespace:InventoryManager"
-             x:Class="InventoryManager.App">
+             xmlns:local="clr-namespace:InventoryManager">
+
     <Application.Resources>
         <ResourceDictionary>
-            <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="Resources/Styles/Colors.xaml" />
-                <ResourceDictionary Source="Resources/Styles/Styles.xaml" />
-            </ResourceDictionary.MergedDictionaries>
+
+            <!-- 🎨 COLOR PALETTE -->
+            <!-- Define your app's color scheme here for consistent branding -->
+            <Color x:Key="Primary">DarkBlue</Color>
+            <Color x:Key="Secondary">LightBlue</Color>
+            <Color x:Key="Tertiary">White</Color>
+            <Color x:Key="Accent">Orange</Color>
+            <Color x:Key="Success">Green</Color>
+            <Color x:Key="Warning">Orange</Color>
+            <Color x:Key="Error">Red</Color>
+            <Color x:Key="Info">LightBlue</Color>
+
+            <!-- Background Colors -->
+            <Color x:Key="PageBackgroundColor">White</Color>
+            <Color x:Key="CardBackgroundColor">LightGray</Color>
+            <Color x:Key="SurfaceColor">WhiteSmoke</Color>
+
+            <!-- Text Colors -->
+            <Color x:Key="PrimaryTextColor">Black</Color>
+            <Color x:Key="SecondaryTextColor">DarkGray</Color>
+            <Color x:Key="DisabledTextColor">Gray</Color>
+
+            <!-- 📝 TEXT STYLES -->
+            <!-- Define consistent text styling throughout your app -->
+
+            <!-- Headers -->
+            <Style x:Key="HeaderStyle" TargetType="Label">
+                <Setter Property="FontSize" Value="24" />
+                <Setter Property="FontAttributes" Value="Bold" />
+                <Setter Property="TextColor" Value="{StaticResource Primary}" />
+                <Setter Property="HorizontalOptions" Value="Center" />
+            </Style>
+
+            <Style x:Key="SubHeaderStyle" TargetType="Label">
+                <Setter Property="FontSize" Value="18" />
+                <Setter Property="FontAttributes" Value="Bold" />
+                <Setter Property="TextColor" Value="{StaticResource PrimaryTextColor}" />
+            </Style>
+
+            <!-- Body Text -->
+            <Style x:Key="BodyTextStyle" TargetType="Label">
+                <Setter Property="FontSize" Value="14" />
+                <Setter Property="TextColor" Value="{StaticResource PrimaryTextColor}" />
+                <Setter Property="LineBreakMode" Value="WordWrap" />
+            </Style>
+
+            <Style x:Key="CaptionTextStyle" TargetType="Label">
+                <Setter Property="FontSize" Value="12" />
+                <Setter Property="TextColor" Value="{StaticResource SecondaryTextColor}" />
+            </Style>
+
+            <!-- 🔲 BUTTON STYLES -->
+            <!-- Consistent button styling for different purposes -->
+
+            <!-- Primary Action Button -->
+            <Style x:Key="PrimaryButtonStyle" TargetType="Button">
+                <Setter Property="BackgroundColor" Value="{StaticResource Primary}" />
+                <Setter Property="TextColor" Value="{StaticResource Tertiary}" />
+                <Setter Property="FontSize" Value="16" />
+                <Setter Property="FontAttributes" Value="Bold" />
+                <Setter Property="CornerRadius" Value="8" />
+                <Setter Property="HeightRequest" Value="45" />
+                <Setter Property="Padding" Value="15,0" />
+            </Style>
+
+            <!-- Secondary Button -->
+            <Style x:Key="SecondaryButtonStyle" TargetType="Button">
+                <Setter Property="BackgroundColor" Value="{StaticResource Secondary}" />
+                <Setter Property="TextColor" Value="{StaticResource Primary}" />
+                <Setter Property="FontSize" Value="16" />
+                <Setter Property="CornerRadius" Value="8" />
+                <Setter Property="HeightRequest" Value="45" />
+                <Setter Property="Padding" Value="15,0" />
+            </Style>
+
+            <!-- Success Button -->
+            <Style x:Key="SuccessButtonStyle" TargetType="Button">
+                <Setter Property="BackgroundColor" Value="{StaticResource Success}" />
+                <Setter Property="TextColor" Value="{StaticResource Tertiary}" />
+                <Setter Property="FontSize" Value="16" />
+                <Setter Property="CornerRadius" Value="8" />
+                <Setter Property="HeightRequest" Value="45" />
+            </Style>
+
+            <!-- Danger Button -->
+            <Style x:Key="DangerButtonStyle" TargetType="Button">
+                <Setter Property="BackgroundColor" Value="{StaticResource Error}" />
+                <Setter Property="TextColor" Value="{StaticResource Tertiary}" />
+                <Setter Property="FontSize" Value="16" />
+                <Setter Property="CornerRadius" Value="8" />
+                <Setter Property="HeightRequest" Value="45" />
+            </Style>
+
+            <!-- 📝 INPUT FIELD STYLES -->
+            <!-- Consistent styling for text inputs -->
+
+            <Style x:Key="EntryStyle" TargetType="Entry">
+                <Setter Property="BackgroundColor" Value="{StaticResource Tertiary}" />
+                <Setter Property="TextColor" Value="{StaticResource PrimaryTextColor}" />
+                <Setter Property="PlaceholderColor" Value="{StaticResource SecondaryTextColor}" />
+                <Setter Property="FontSize" Value="16" />
+                <Setter Property="HeightRequest" Value="45" />
+                <!--<Setter Property="Padding" Value="10,0" />-->
+            </Style>
+
+            <Style x:Key="PickerStyle" TargetType="Picker">
+                <Setter Property="BackgroundColor" Value="{StaticResource Tertiary}" />
+                <Setter Property="TextColor" Value="{StaticResource PrimaryTextColor}" />
+                <Setter Property="FontSize" Value="16" />
+                <Setter Property="HeightRequest" Value="45" />
+            </Style>
+
+            <!-- 🏠 FRAME STYLES -->
+            <!-- Consistent card and container styling -->
+
+            <Style x:Key="CardFrameStyle" TargetType="Frame">
+                <Setter Property="BackgroundColor" Value="{StaticResource CardBackgroundColor}" />
+                <Setter Property="HasShadow" Value="True" />
+                <Setter Property="CornerRadius" Value="10" />
+                <Setter Property="Padding" Value="20" />
+                <Setter Property="Margin" Value="0,5" />
+            </Style>
+
+            <Style x:Key="PrimaryCardStyle" TargetType="Frame">
+                <Setter Property="BackgroundColor" Value="{StaticResource Primary}" />
+                <Setter Property="HasShadow" Value="True" />
+                <Setter Property="CornerRadius" Value="10" />
+                <Setter Property="Padding" Value="20" />
+                <Setter Property="Margin" Value="0,5" />
+            </Style>
+
+            <Style x:Key="SuccessCardStyle" TargetType="Frame">
+                <Setter Property="BackgroundColor" Value="{StaticResource Success}" />
+                <Setter Property="HasShadow" Value="True" />
+                <Setter Property="CornerRadius" Value="10" />
+                <Setter Property="Padding" Value="20" />
+                <Setter Property="Margin" Value="0,5" />
+            </Style>
+
+            <!-- 📊 STATUS STYLES -->
+            <!-- Styles for different status indicators -->
+
+            <Style x:Key="SuccessLabelStyle" TargetType="Label">
+                <Setter Property="TextColor" Value="{StaticResource Success}" />
+                <Setter Property="FontSize" Value="14" />
+                <Setter Property="FontAttributes" Value="Bold" />
+            </Style>
+
+            <Style x:Key="ErrorLabelStyle" TargetType="Label">
+                <Setter Property="TextColor" Value="{StaticResource Error}" />
+                <Setter Property="FontSize" Value="14" />
+                <Setter Property="FontAttributes" Value="Bold" />
+            </Style>
+
+            <Style x:Key="WarningLabelStyle" TargetType="Label">
+                <Setter Property="TextColor" Value="{StaticResource Warning}" />
+                <Setter Property="FontSize" Value="14" />
+                <Setter Property="FontAttributes" Value="Bold" />
+            </Style>
+
+            <Style x:Key="InfoLabelStyle" TargetType="Label">
+                <Setter Property="TextColor" Value="{StaticResource Info}" />
+                <Setter Property="FontSize" Value="14" />
+            </Style>
+
+            <!-- 📱 PAGE STYLES -->
+            <!-- Default styles that apply to all pages -->
+
+            <Style TargetType="ContentPage">
+                <Setter Property="BackgroundColor" Value="{StaticResource PageBackgroundColor}" />
+            </Style>
+
+            <Style TargetType="NavigationPage">
+                <Setter Property="BarBackgroundColor" Value="{StaticResource Primary}" />
+                <Setter Property="BarTextColor" Value="{StaticResource Tertiary}" />
+            </Style>
+
         </ResourceDictionary>
     </Application.Resources>
+
 </Application>
