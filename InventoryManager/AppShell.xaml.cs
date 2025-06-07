@@ -49,6 +49,9 @@ public partial class AppShell : Shell
 
         // For now, we'll keep it simple and focus on the main navigation
         System.Diagnostics.Debug.WriteLine("AppShell routes registered successfully");
+
+        // Register the AddItemPopup route for navigation
+        Routing.RegisterRoute("AddItemPopup", typeof(AddItemPopup));
     }
 
     /// <summary>

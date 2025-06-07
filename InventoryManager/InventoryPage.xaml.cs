@@ -450,7 +450,8 @@ public partial class InventoryPage : ContentPage
     }
 
     /// <summary>
-    /// Handle add new item button click (admin only)
+    /// Handle add new item button click (admin only) - UPDATED to use popup
+    /// Replace your existing OnAddItemClicked method with this version
     /// </summary>
     private async void OnAddItemClicked(object sender, EventArgs e)
     {
@@ -462,11 +463,42 @@ public partial class InventoryPage : ContentPage
 
         try
         {
-            await ShowAddItemDialog();
+            // Create and show the popup
+            var addItemPopup = new AddItemPopup();
+
+            // Subscribe to the ItemAdded event to refresh the inventory list
+            addItemPopup.ItemAdded += OnNewItemAdded;
+
+            // Navigate to the popup
+            await Shell.Current.GoToAsync("AddItemPopup");
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Error", $"Failed to add item: {ex.Message}", "OK");
+            await DisplayAlert("Error", $"Failed to open add item dialog: {ex.Message}", "OK");
+        }
+    }
+
+    /// <summary>
+    /// Handle when a new item is successfully added via the popup
+    /// This refreshes the inventory display to show the new item
+    /// </summary>
+    private async void OnNewItemAdded(object? sender, InventoryItem newItem)
+    {
+        try
+        {
+            // Refresh the inventory list to show the new item
+            await LoadInventoryItemsAsync();
+            await UpdateSummaryStatsAsync();
+
+            // Refresh filters in case this created a new category
+            await SetupFiltersAsync();
+
+            // Optional: Show a brief success message
+            System.Diagnostics.Debug.WriteLine($"New item added: {newItem.Name}");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error refreshing after item add: {ex.Message}");
         }
     }
 

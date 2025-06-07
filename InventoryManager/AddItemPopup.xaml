@@ -1,0 +1,301 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- AddItemPopup.xaml - User-Friendly Modal for Adding New Inventory Items -->
+<!-- This creates a professional popup form that's taller than wide with proper validation -->
+
+<ContentPage x:Class="InventoryManager.AddItemPopup"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             Title="Add New Item"
+             BackgroundColor="#80000000">
+
+    <!-- Semi-transparent overlay background -->
+    <Grid BackgroundColor="#80000000">
+
+        <!-- Modal Container - Centered on screen -->
+        <Border BackgroundColor="White"
+                StrokeShape="RoundRectangle 15"
+                Stroke="LightGray"
+                StrokeThickness="1"
+                WidthRequest="350"
+                HeightRequest="550"
+                HorizontalOptions="Center"
+                VerticalOptions="Center"
+                Shadow="{Shadow Brush=Black, Offset='0,4', Radius=8, Opacity=0.3}">
+
+            <ScrollView>
+                <StackLayout Padding="25,20" Spacing="20">
+
+                    <!-- Header -->
+                    <StackLayout Spacing="5">
+                        <Label Text="📦 Add New Item"
+                               FontSize="22"
+                               FontAttributes="Bold"
+                               TextColor="DarkBlue"
+                               HorizontalOptions="Center" />
+                        <Label Text="Fill in the details for the new inventory item"
+                               FontSize="14"
+                               TextColor="Gray"
+                               HorizontalOptions="Center"
+                               HorizontalTextAlignment="Center" />
+                    </StackLayout>
+
+                    <!-- Form Fields -->
+                    <StackLayout Spacing="15">
+
+                        <!-- Item ID Field -->
+                        <StackLayout>
+                            <Label Text="Item ID / Code *"
+                                   FontAttributes="Bold"
+                                   FontSize="14"
+                                   TextColor="DarkGray" />
+                            <Entry x:Name="ItemCodeEntry"
+                                   Placeholder="Enter unique item code (e.g., SKU001)"
+                                   FontSize="16"
+                                   BackgroundColor="#F8F9FA"
+                                   TextChanged="OnItemCodeChanged"
+                                   MaxLength="20" />
+                            <Label x:Name="ItemCodeErrorLabel"
+                                   Text=""
+                                   FontSize="12"
+                                   TextColor="Red"
+                                   IsVisible="False" />
+                        </StackLayout>
+
+                        <!-- Item Name Field -->
+                        <StackLayout>
+                            <Label Text="Item Name *"
+                                   FontAttributes="Bold"
+                                   FontSize="14"
+                                   TextColor="DarkGray" />
+                            <Entry x:Name="ItemNameEntry"
+                                   Placeholder="Enter descriptive item name"
+                                   FontSize="16"
+                                   BackgroundColor="#F8F9FA"
+                                   TextChanged="OnItemNameChanged"
+                                   MaxLength="100" />
+                            <Label x:Name="ItemNameErrorLabel"
+                                   Text=""
+                                   FontSize="12"
+                                   TextColor="Red"
+                                   IsVisible="False" />
+                        </StackLayout>
+
+                        <!-- Description Field -->
+                        <StackLayout>
+                            <Label Text="Description (Optional)"
+                                   FontAttributes="Bold"
+                                   FontSize="14"
+                                   TextColor="DarkGray" />
+                            <Editor x:Name="DescriptionEditor"
+                                    Placeholder="Enter detailed description..."
+                                    FontSize="14"
+                                    BackgroundColor="#F8F9FA"
+                                    HeightRequest="80"
+                                    MaxLength="500" />
+                        </StackLayout>
+
+                        <!-- Quantity Field -->
+                        <StackLayout>
+                            <Label Text="Initial Quantity *"
+                                   FontAttributes="Bold"
+                                   FontSize="14"
+                                   TextColor="DarkGray" />
+                            <Grid ColumnDefinitions="2*,*" ColumnSpacing="10">
+                                <Entry Grid.Column="0"
+                                       x:Name="QuantityEntry"
+                                       Placeholder="0"
+                                       Keyboard="Numeric"
+                                       FontSize="16"
+                                       BackgroundColor="#F8F9FA"
+                                       TextChanged="OnQuantityChanged" />
+                                <Picker Grid.Column="1"
+                                        x:Name="UnitPicker"
+                                        Title="Unit"
+                                        BackgroundColor="#F8F9FA"
+                                        FontSize="14">
+                                    <Picker.ItemsSource>
+                                        <x:Array Type="{x:Type x:String}">
+                                            <x:String>pieces</x:String>
+                                            <x:String>boxes</x:String>
+                                            <x:String>sets</x:String>
+                                            <x:String>rolls</x:String>
+                                            <x:String>sheets</x:String>
+                                            <x:String>liters</x:String>
+                                            <x:String>kilograms</x:String>
+                                            <x:String>meters</x:String>
+                                            <x:String>packs</x:String>
+                                        </x:Array>
+                                    </Picker.ItemsSource>
+                                </Picker>
+                            </Grid>
+                            <Label x:Name="QuantityErrorLabel"
+                                   Text=""
+                                   FontSize="12"
+                                   TextColor="Red"
+                                   IsVisible="False" />
+                        </StackLayout>
+
+                        <!-- Min/Max Quantities -->
+                        <StackLayout>
+                            <Label Text="Stock Levels"
+                                   FontAttributes="Bold"
+                                   FontSize="14"
+                                   TextColor="DarkGray" />
+                            <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                                <StackLayout Grid.Column="0">
+                                    <Label Text="Minimum"
+                                           FontSize="12"
+                                           TextColor="Gray" />
+                                    <Entry x:Name="MinQuantityEntry"
+                                           Placeholder="Min stock"
+                                           Keyboard="Numeric"
+                                           FontSize="14"
+                                           BackgroundColor="#F8F9FA" />
+                                </StackLayout>
+                                <StackLayout Grid.Column="1">
+                                    <Label Text="Maximum"
+                                           FontSize="12"
+                                           TextColor="Gray" />
+                                    <Entry x:Name="MaxQuantityEntry"
+                                           Placeholder="Max stock"
+                                           Keyboard="Numeric"
+                                           FontSize="14"
+                                           BackgroundColor="#F8F9FA" />
+                                </StackLayout>
+                            </Grid>
+                        </StackLayout>
+
+                        <!-- Location Field -->
+                        <StackLayout>
+                            <Label Text="Location *"
+                                   FontAttributes="Bold"
+                                   FontSize="14"
+                                   TextColor="DarkGray" />
+                            <Picker x:Name="LocationPicker"
+                                    Title="Select location"
+                                    BackgroundColor="#F8F9FA"
+                                    FontSize="16"
+                                    SelectedIndexChanged="OnLocationChanged" />
+                            <Label x:Name="LocationErrorLabel"
+                                   Text=""
+                                   FontSize="12"
+                                   TextColor="Red"
+                                   IsVisible="False" />
+                        </StackLayout>
+
+                        <!-- Category Field -->
+                        <StackLayout>
+                            <Label Text="Category"
+                                   FontAttributes="Bold"
+                                   FontSize="14"
+                                   TextColor="DarkGray" />
+                            <Grid ColumnDefinitions="2*,*" ColumnSpacing="10">
+                                <Entry Grid.Column="0"
+                                       x:Name="CategoryEntry"
+                                       Placeholder="Enter category"
+                                       FontSize="14"
+                                       BackgroundColor="#F8F9FA"
+                                       MaxLength="50" />
+                                <Button Grid.Column="1"
+                                        x:Name="CategorySuggestBtn"
+                                        Text="Suggest"
+                                        FontSize="12"
+                                        BackgroundColor="LightBlue"
+                                        TextColor="DarkBlue"
+                                        CornerRadius="5"
+                                        Clicked="OnCategorySuggestClicked" />
+                            </Grid>
+                        </StackLayout>
+
+                        <!-- Supplier and Cost -->
+                        <StackLayout>
+                            <Label Text="Additional Details"
+                                   FontAttributes="Bold"
+                                   FontSize="14"
+                                   TextColor="DarkGray" />
+                            <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                                <StackLayout Grid.Column="0">
+                                    <Label Text="Supplier"
+                                           FontSize="12"
+                                           TextColor="Gray" />
+                                    <Entry x:Name="SupplierEntry"
+                                           Placeholder="Supplier name"
+                                           FontSize="14"
+                                           BackgroundColor="#F8F9FA"
+                                           MaxLength="100" />
+                                </StackLayout>
+                                <StackLayout Grid.Column="1">
+                                    <Label Text="Unit Cost ($)"
+                                           FontSize="12"
+                                           TextColor="Gray" />
+                                    <Entry x:Name="UnitCostEntry"
+                                           Placeholder="0.00"
+                                           Keyboard="Numeric"
+                                           FontSize="14"
+                                           BackgroundColor="#F8F9FA" />
+                                </StackLayout>
+                            </Grid>
+                        </StackLayout>
+
+                    </StackLayout>
+
+                    <!-- Validation Summary -->
+                    <Border x:Name="ValidationSummaryBorder"
+                            BackgroundColor="#FFF3CD"
+                            StrokeShape="RoundRectangle 5"
+                            Stroke="#FFEAA7"
+                            StrokeThickness="1"
+                            Padding="10"
+                            IsVisible="False">
+                        <StackLayout>
+                            <Label Text="⚠️ Please fix the following issues:"
+                                   FontAttributes="Bold"
+                                   FontSize="12"
+                                   TextColor="#856404" />
+                            <Label x:Name="ValidationSummaryLabel"
+                                   FontSize="11"
+                                   TextColor="#856404" />
+                        </StackLayout>
+                    </Border>
+
+                    <!-- Action Buttons -->
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="15" Margin="0,10,0,0">
+
+                        <!-- Cancel Button -->
+                        <Button Grid.Column="0"
+                                x:Name="CancelButton"
+                                Text="Cancel"
+                                FontSize="16"
+                                BackgroundColor="LightGray"
+                                TextColor="DarkGray"
+                                CornerRadius="8"
+                                HeightRequest="45"
+                                Clicked="OnCancelClicked" />
+
+                        <!-- Confirm/Add Button -->
+                        <Button Grid.Column="1"
+                                x:Name="ConfirmButton"
+                                Text="Add Item"
+                                FontSize="16"
+                                FontAttributes="Bold"
+                                BackgroundColor="Green"
+                                TextColor="White"
+                                CornerRadius="8"
+                                HeightRequest="45"
+                                Clicked="OnConfirmClicked"
+                                IsEnabled="False" />
+                    </Grid>
+
+                    <!-- Required Fields Note -->
+                    <Label Text="* Required fields"
+                           FontSize="10"
+                           TextColor="Gray"
+                           HorizontalOptions="Center"
+                           Margin="0,5,0,0" />
+
+                </StackLayout>
+            </ScrollView>
+        </Border>
+    </Grid>
+
+</ContentPage>
