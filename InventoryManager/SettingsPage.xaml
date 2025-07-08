@@ -44,15 +44,7 @@
                            TextColor="Gray" />
 
                     <!-- Language Toggle -->
-                    <!--<controls:LanguageToggle HorizontalOptions="Start" />-->
-
-					<Button x:Name="ToggleButton"
-							Text="🇬🇧 EN"
-							BackgroundColor="Transparent"
-							TextColor="DarkBlue"
-							FontSize="14"
-							FontAttributes="Bold"
-							Clicked="OnToggleClicked" />
+                    <controls:LanguageToggle HorizontalOptions="Start" />
 
                     <Label x:Name="LanguageHintLabel"
                            Text="Click to toggle between English and Romanian"
