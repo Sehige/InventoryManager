@@ -1,59 +1,50 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<!-- AppShell.xaml - Updated Navigation Structure with Inventory Management -->
-<!-- This version adds proper navigation to your inventory page and creates a tabbed interface -->
-<!-- Think of this as upgrading from a simple house to a multi-room facility with clear pathways -->
+<!-- AppShell.xaml - Application shell with navigation structure including Settings -->
+<!-- This defines the overall navigation structure of the app after login -->
 
-<Shell
-    x:Class="InventoryManager.AppShell"
-    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    xmlns:local="clr-namespace:InventoryManager"
-    Title="InventoryManager"
-    FlyoutBehavior="Disabled">
+<Shell x:Class="InventoryManager.AppShell"
+       xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+       xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+       xmlns:local="clr-namespace:InventoryManager"
+       Shell.FlyoutBehavior="Disabled"
+       Title="InventoryManager">
 
-    <!-- Shell.Resources defines styles that apply to the entire navigation structure -->
+    <!-- Visual States for Tab Bar appearance -->
     <Shell.Resources>
         <ResourceDictionary>
-            <!-- Define colors for consistent theming -->
-            <Color x:Key="Primary">DarkBlue</Color>
-            <Color x:Key="Secondary">LightBlue</Color>
-            <Color x:Key="Tertiary">White</Color>
-
-            <!-- Tab bar appearance styles -->
-            <!-- These styles make your navigation look professional and consistent -->
             <Style x:Key="BaseStyle" TargetType="Element">
-                <Setter Property="Shell.BackgroundColor" Value="{StaticResource Primary}" />
-                <Setter Property="Shell.ForegroundColor" Value="{StaticResource Tertiary}" />
-                <Setter Property="Shell.TitleColor" Value="{StaticResource Tertiary}" />
-                <Setter Property="Shell.DisabledColor" Value="Gray" />
+                <Setter Property="Shell.BackgroundColor" Value="DarkBlue" />
+                <Setter Property="Shell.ForegroundColor" Value="White" />
+                <Setter Property="Shell.TitleColor" Value="White" />
+                <Setter Property="Shell.DisabledColor" Value="LightGray" />
                 <Setter Property="Shell.UnselectedColor" Value="LightGray" />
-                <Setter Property="Shell.TabBarBackgroundColor" Value="{StaticResource Primary}" />
-                <Setter Property="Shell.TabBarForegroundColor" Value="{StaticResource Tertiary}" />
-                <Setter Property="Shell.TabBarUnselectedColor" Value="LightGray" />
+                <Setter Property="Shell.TabBarBackgroundColor" Value="DarkBlue" />
+                <Setter Property="Shell.TabBarForegroundColor" Value="White"/>
+                <Setter Property="Shell.TabBarUnselectedColor" Value="LightGray"/>
+                <Setter Property="Shell.TabBarTitleColor" Value="White"/>
             </Style>
+            <Style TargetType="TabBar" BasedOn="{StaticResource BaseStyle}" />
+            <Style TargetType="FlyoutItem" BasedOn="{StaticResource BaseStyle}" />
         </ResourceDictionary>
     </Shell.Resources>
 
-    <!-- Login Route - This is the authentication page where users enter credentials -->
-    <!-- Route="login" means you can navigate here using //login -->
-    <!-- This page is isolated from the main app navigation since users aren't authenticated yet -->
+    <!-- Login Page Route - Outside of TabBar so it doesn't show tabs -->
     <ShellContent
         Title="Login"
         ContentTemplate="{DataTemplate local:MainPage}"
         Route="login"
         Shell.FlyoutBehavior="Disabled"
+        Shell.NavBarIsVisible="False"
         Shell.TabBarIsVisible="False" />
 
-    <!-- Main Application Tab Bar - This is where authenticated users spend their time -->
-    <!-- TabBar creates the bottom navigation that users see after logging in -->
-    <!-- Think of this as the main floor of your warehouse management system -->
+    <!-- Main App TabBar - This appears after successful login -->
     <TabBar Route="main">
 
-        <!-- Dashboard Tab - Overview and summary information -->
-        <!-- This gives users a bird's eye view of their accessible inventory -->
+        <!-- Dashboard Tab - The home screen after login -->
+        <!-- This shows system overview and quick stats -->
         <ShellContent
             Title="Dashboard"
-            Icon="home.png"
+            Icon="dashboard.png"
             ContentTemplate="{DataTemplate local:DashboardPage}"
             Route="dashboard" />
 
@@ -65,44 +56,23 @@
             ContentTemplate="{DataTemplate local:InventoryPage}"
             Route="inventory" />
 
-        <!-- Scanner Tab - For future barcode/QR code scanning functionality -->
-        <!-- We'll comment this out for now since you haven't built the scanner yet -->
-        <!--
+        <!-- Settings Tab - For user preferences and language selection -->
         <ShellContent
-            Title="Scanner"
-            Icon="scan.png"
-            ContentTemplate="{DataTemplate local:ScannerPage}"
-            Route="scanner" />
-        -->
-
-        <!-- Reports Tab - For future reporting and analytics -->
-        <!-- This will be useful later for generating inventory reports -->
-        <!--
-        <ShellContent
-            Title="Reports"
-            Icon="chart.png"
-            ContentTemplate="{DataTemplate local:ReportsPage}"
-            Route="reports" />
-        -->
+            Title="Settings"
+            Icon="settings.png"
+            ContentTemplate="{DataTemplate local:SettingsPage}"
+            Route="settings" />
 
     </TabBar>
 
-    <!-- Additional Routes for Modal Pages and Deep Navigation -->
-    <!-- These are pages that can be navigated to programmatically but don't appear in tabs -->
-    <!-- Think of these as utility rooms that you access when needed but aren't part of the main flow -->
+    <!-- Additional Routes for Modal Pages -->
+    <!-- These are registered here but don't appear in the tab bar -->
 
-    <!-- Future routes you might add:
+    <!-- Add Item Popup - Modal for adding new inventory items -->
     <ShellContent
-        ContentTemplate="{DataTemplate local:ItemDetailsPage}"
-        Route="itemdetails" />
-    
-    <ShellContent
-        ContentTemplate="{DataTemplate local:EditItemPage}"
-        Route="edititem" />
-    
-    <ShellContent
-        ContentTemplate="{DataTemplate local:UserManagementPage}"
-        Route="usermanagement" />
-    -->
+        Title="Add Item"
+        ContentTemplate="{DataTemplate local:AddItemPopup}"
+        Route="AddItemPopup"
+        Shell.PresentationMode="ModalAnimated" />
 
 </Shell>

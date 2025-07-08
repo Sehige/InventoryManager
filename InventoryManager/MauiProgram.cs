@@ -1,7 +1,4 @@
-﻿// MauiProgram.cs - FIXED Configuration Issues
-// This version fixes the UseMauiCommunityToolkit and AddConsole errors
-// All builder chain methods are properly ordered and console logging is removed to avoid dependency issues
-
+﻿// MauiProgram.cs - Updated with language manager registration
 using CommunityToolkit.Maui;
 using InventoryManager.Services;
 using Microsoft.Extensions.Logging;
@@ -9,60 +6,47 @@ using Microsoft.Extensions.Logging;
 namespace InventoryManager;
 
 /// <summary>
-/// Fixed MauiProgram that resolves the builder chain and logging configuration errors
-/// This version properly configures MAUI Community Toolkit and removes problematic console logging
+/// Main entry point for configuring the MAUI application
+/// Sets up all services, pages, and dependencies
 /// </summary>
 public static class MauiProgram
 {
     /// <summary>
-    /// Create and configure the MAUI application with fixed configuration chain
-    /// FIXED: Proper builder chain order and removed problematic console logging
+    /// Creates and configures the MAUI application
+    /// This is called by the platform-specific code to start the app
     /// </summary>
     public static MauiApp CreateMauiApp()
     {
         var builder = MauiApp.CreateBuilder();
 
-        // Configure the MAUI app with Community Toolkit - THIS IS THE FIXED CHAIN ORDER
+        // Configure the app to use the App class as the main application
         builder
             .UseMauiApp<App>()
             .UseMauiCommunityToolkit() // FIXED: This must be chained directly after UseMauiApp<T>()
             .ConfigureFonts(fonts =>
             {
+                // Add default fonts
                 fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
                 fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
             });
 
-        // Configure logging for debugging and monitoring
-        ConfigureLogging(builder);
-
         // Register all services for dependency injection
         RegisterServices(builder);
 
-        // Register all pages for dependency injection and navigation
+        // Register all pages for dependency injection
         RegisterPages(builder);
 
-        // Build and return the configured app
-        return builder.Build();
-    }
-
-    /// <summary>
-    /// Configure logging for the application
-    /// FIXED: Removed AddConsole() to avoid dependency issues
-    /// </summary>
-    private static void ConfigureLogging(MauiAppBuilder builder)
-    {
-        // AddDebug is always available in MAUI projects
-        builder.Logging.AddDebug();
-
 #if DEBUG
-        // Set minimum log level for debug builds
-        builder.Logging.SetMinimumLevel(LogLevel.Debug);
-
-        // REMOVED: AddConsole() because it requires additional NuGet packages
-        // Debug logging is sufficient for development and doesn't require extra dependencies
+        // Add debug logging in development
+        builder.Logging.AddDebug();
+        System.Diagnostics.Debug.WriteLine("MauiProgram: Debug logging enabled");
 #endif
 
-        System.Diagnostics.Debug.WriteLine("Logging configured successfully");
+        // Build and return the configured app
+        var app = builder.Build();
+        System.Diagnostics.Debug.WriteLine("MauiProgram: App built successfully");
+
+        return app;
     }
 
     /// <summary>
@@ -80,6 +64,9 @@ public static class MauiProgram
         // Inventory service - Depends on both DatabaseService and AuthService
         builder.Services.AddSingleton<InventoryService>();
 
+        // Language manager - For multi-language support
+        builder.Services.AddSingleton<LanguageManager>();
+
         System.Diagnostics.Debug.WriteLine("All core services registered successfully");
     }
 
@@ -95,6 +82,7 @@ public static class MauiProgram
         // Main application pages
         builder.Services.AddTransient<DashboardPage>(); // Overview and stats
         builder.Services.AddTransient<InventoryPage>(); // Inventory list and management
+        builder.Services.AddTransient<SettingsPage>(); // Settings and language selection
 
         System.Diagnostics.Debug.WriteLine("All pages registered successfully");
     }

@@ -1,29 +1,21 @@
-﻿// MainPage.xaml.cs - Updated Login Logic with Proper Navigation to Inventory
-// This updated version ensures users are directed to the main app after successful login
-// The key change is in the NavigateToMainApp method which now goes to the tabbed interface
-
+﻿// MainPage.xaml.cs - Login page with language support
 using InventoryManager.Services;
 using InventoryManager.Models;
 
 namespace InventoryManager;
 
 /// <summary>
-/// Main page that handles user authentication (login and registration)
-/// This updated version properly integrates with the new tabbed navigation structure
-/// After successful login, users are directed to the main application where they can access inventory
+/// Main page that handles user authentication with language support
 /// </summary>
 public partial class MainPage : ContentPage
 {
-    // Private fields to hold our services (unchanged from original)
     private readonly DatabaseService _databaseService;
     private readonly AuthService _authService;
-
-    // Track whether we're in login mode (true) or registration mode (false)
+    private readonly LanguageManager _languageManager;
     private bool _isLoginMode = true;
 
     /// <summary>
     /// Constructor - sets up the page and initializes services
-    /// This is exactly the same as your original version
     /// </summary>
     public MainPage()
     {
@@ -31,32 +23,76 @@ public partial class MainPage : ContentPage
 
         _databaseService = new DatabaseService();
         _authService = new AuthService(_databaseService);
+        _languageManager = App.GetLanguageManager() ?? new LanguageManager();
+
+        // Subscribe to language changes
+        _languageManager.LanguageChanged += OnLanguageChanged;
+
+        // Update UI with correct language
+        UpdateUIText();
 
         // Initialize database asynchronously
         _ = InitializeDatabaseAsync();
     }
 
     /// <summary>
+    /// Update all UI text based on current language
+    /// </summary>
+    private void UpdateUIText()
+    {
+        // Update button texts
+        LoginModeBtn.Text = L.Get("Login");
+        RegisterModeBtn.Text = L.Get("Register");
+
+        // Update placeholders
+        FullNameEntry.Placeholder = L.Get("FullName");
+        UsernameEntry.Placeholder = L.Get("Username");
+        PasswordEntry.Placeholder = L.Get("Password");
+        RolePicker.Title = L.Get("SelectRole");
+
+        // Update welcome text based on mode
+        if (_isLoginMode)
+        {
+            WelcomeLabel.Text = L.Get("WelcomeBack");
+            ActionButton.Text = L.Get("Login");
+        }
+        else
+        {
+            WelcomeLabel.Text = L.Get("CreateNewAccount");
+            ActionButton.Text = L.Get("RegisterNewUser");
+        }
+
+        // Update help text
+        DefaultAdminHelpLabel.Text = L.Get("DefaultAdminLogin");
+    }
+
+    /// <summary>
+    /// Handle language change event
+    /// </summary>
+    private void OnLanguageChanged(object? sender, string newLanguage)
+    {
+        Device.BeginInvokeOnMainThread(() => UpdateUIText());
+    }
+
+    /// <summary>
     /// Initialize the database and show the result to the user
-    /// This method is unchanged from your original version
     /// </summary>
     private async Task InitializeDatabaseAsync()
     {
         try
         {
             await _databaseService.InitializeAsync();
-            ShowStatus("Database ready", false);
+            ShowStatus(L.Get("DatabaseReady"), false);
 
             await Task.Delay(3000);
             StatusLabel.IsVisible = false;
         }
         catch (Exception ex)
         {
-            ShowStatus($"Database error: {ex.Message}", true);
+            ShowStatus(L.Get("DatabaseError", ex.Message), true);
         }
     }
 
-    // All your existing UI mode switching methods remain exactly the same
     private void OnLoginModeClicked(object sender, EventArgs e)
     {
         SetLoginMode(true);
@@ -73,8 +109,8 @@ public partial class MainPage : ContentPage
 
         if (isLogin)
         {
-            ActionButton.Text = "Login";
-            WelcomeLabel.Text = "Welcome Back!";
+            ActionButton.Text = L.Get("Login");
+            WelcomeLabel.Text = L.Get("WelcomeBack");
             LoginModeBtn.BackgroundColor = Colors.DarkBlue;
             RegisterModeBtn.BackgroundColor = Colors.Gray;
             FullNameEntry.IsVisible = false;
@@ -82,8 +118,8 @@ public partial class MainPage : ContentPage
         }
         else
         {
-            ActionButton.Text = "Register New User";
-            WelcomeLabel.Text = "Create New Account";
+            ActionButton.Text = L.Get("RegisterNewUser");
+            WelcomeLabel.Text = L.Get("CreateNewAccount");
             LoginModeBtn.BackgroundColor = Colors.Gray;
             RegisterModeBtn.BackgroundColor = Colors.DarkBlue;
             FullNameEntry.IsVisible = true;
@@ -117,8 +153,7 @@ public partial class MainPage : ContentPage
     }
 
     /// <summary>
-    /// Handle user login attempt - this method is mostly unchanged
-    /// The key difference is in the NavigateToMainApp call at the end
+    /// Handle user login attempt
     /// </summary>
     private async Task HandleLoginAsync()
     {
@@ -127,42 +162,40 @@ public partial class MainPage : ContentPage
 
         if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
         {
-            ShowStatus("Please enter both username and password", true);
+            ShowStatus(L.Get("PleaseEnterCredentials"), true);
             return;
         }
 
         try
         {
-            ShowStatus("Logging in...", false);
-            ActionButton.Text = "Logging in...";
+            ShowStatus(L.Get("LoggingIn"), false);
+            ActionButton.Text = L.Get("LoggingIn");
 
             var user = await _authService.LoginAsync(username, password);
 
             if (user != null)
             {
                 await _authService.SaveUserSessionAsync(user);
-                ShowStatus($"Welcome back, {user.FullName}!", false);
+                ShowStatus(L.Get("WelcomeUser", user.FullName), false);
 
                 await Task.Delay(1500);
-
-                // THIS IS THE KEY CHANGE: Navigate to the main tabbed interface
                 await NavigateToMainApp(user);
             }
             else
             {
-                ShowStatus("Invalid username or password", true);
-                ActionButton.Text = "Login";
+                ShowStatus(L.Get("InvalidCredentials"), true);
+                ActionButton.Text = L.Get("Login");
             }
         }
         catch (Exception ex)
         {
-            ShowStatus($"Login failed: {ex.Message}", true);
-            ActionButton.Text = "Login";
+            ShowStatus($"{L.Get("Error")}: {ex.Message}", true);
+            ActionButton.Text = L.Get("Login");
         }
     }
 
     /// <summary>
-    /// Handle user registration - this method is unchanged from your original
+    /// Handle user registration
     /// </summary>
     private async Task HandleRegisterAsync()
     {
@@ -173,44 +206,44 @@ public partial class MainPage : ContentPage
 
         if (string.IsNullOrWhiteSpace(fullName))
         {
-            ShowStatus("Please enter your full name", true);
+            ShowStatus($"{L.Get("PleaseEnterCredentials")} - {L.Get("FullName")}", true);
             return;
         }
 
         if (string.IsNullOrWhiteSpace(username))
         {
-            ShowStatus("Please enter a username", true);
+            ShowStatus($"{L.Get("PleaseEnterCredentials")} - {L.Get("Username")}", true);
             return;
         }
 
         if (string.IsNullOrWhiteSpace(password))
         {
-            ShowStatus("Please enter a password", true);
+            ShowStatus($"{L.Get("PleaseEnterCredentials")} - {L.Get("Password")}", true);
             return;
         }
 
         if (string.IsNullOrWhiteSpace(selectedRole))
         {
-            ShowStatus("Please select a role", true);
+            ShowStatus(L.Get("SelectRole"), true);
             return;
         }
 
         if (password.Length < 6)
         {
-            ShowStatus("Password must be at least 6 characters long", true);
+            ShowStatus($"{L.Get("Error")}: Password must be at least 6 characters", true);
             return;
         }
 
         if (username.Length < 3)
         {
-            ShowStatus("Username must be at least 3 characters long", true);
+            ShowStatus($"{L.Get("Error")}: Username must be at least 3 characters", true);
             return;
         }
 
         try
         {
-            ShowStatus("Creating account...", false);
-            ActionButton.Text = "Creating Account...";
+            ShowStatus(L.Get("CreatingAccount"), false);
+            ActionButton.Text = L.Get("CreatingAccount");
 
             var newUser = new User
             {
@@ -226,56 +259,48 @@ public partial class MainPage : ContentPage
 
             if (success)
             {
-                ShowStatus("Account created successfully! You can now log in.", false);
+                ShowStatus(L.Get("AccountCreatedSuccessfully"), false);
                 await Task.Delay(2000);
                 SetLoginMode(true);
                 UsernameEntry.Text = username;
             }
             else
             {
-                ShowStatus("Registration failed. Username might already exist.", true);
-                ActionButton.Text = "Register New User";
+                ShowStatus($"{L.Get("Error")}: Username already exists", true);
+                ActionButton.Text = L.Get("RegisterNewUser");
             }
         }
         catch (Exception ex)
         {
-            ShowStatus($"Registration failed: {ex.Message}", true);
-            ActionButton.Text = "Register New User";
+            ShowStatus($"{L.Get("Error")}: {ex.Message}", true);
+            ActionButton.Text = L.Get("RegisterNewUser");
         }
     }
 
     /// <summary>
     /// Navigate to the main application after successful login
-    /// UPDATED: This now navigates to the main tabbed interface instead of just dashboard
-    /// This is where users will spend most of their time managing inventory
     /// </summary>
     private async Task NavigateToMainApp(User user)
     {
         try
         {
-            // Store user session information for use throughout the app
             await SecureStorage.SetAsync("current_user_id", user.Id);
             await SecureStorage.SetAsync("current_user_name", user.FullName);
             await SecureStorage.SetAsync("current_user_role", user.Role);
             await SecureStorage.SetAsync("current_username", user.Username);
             await SecureStorage.SetAsync("login_timestamp", DateTime.UtcNow.ToString());
 
-            // CHANGED: Navigate to the main tabbed interface
-            // This gives users immediate access to both dashboard and inventory
-            // The route "//main/dashboard" goes to the main tab bar and selects the dashboard tab
-            // Users can then easily switch to the inventory tab to see and manage items
             await Shell.Current.GoToAsync("//main/dashboard");
 
             System.Diagnostics.Debug.WriteLine($"User {user.FullName} logged in successfully and navigated to main app");
         }
         catch (Exception ex)
         {
-            ShowStatus($"Navigation error: {ex.Message}", true);
+            ShowStatus($"{L.Get("Error")}: {ex.Message}", true);
             System.Diagnostics.Debug.WriteLine($"Navigation error: {ex.Message}");
         }
     }
 
-    // All the remaining utility methods are unchanged from your original version
     private void ShowStatus(string message, bool isError)
     {
         StatusLabel.Text = message;
@@ -305,10 +330,6 @@ public partial class MainPage : ContentPage
         return false;
     }
 
-    /// <summary>
-    /// UPDATED: Check for existing session and navigate appropriately
-    /// This now directs users to the main tabbed interface if they have a valid session
-    /// </summary>
     protected override async void OnAppearing()
     {
         base.OnAppearing();
@@ -317,8 +338,6 @@ public partial class MainPage : ContentPage
 
     /// <summary>
     /// Check if there's already a valid user session
-    /// UPDATED: Navigates to main app instead of just dashboard
-    /// This allows users to resume their work without having to log in every time
     /// </summary>
     private async Task CheckExistingSession()
     {
@@ -327,10 +346,8 @@ public partial class MainPage : ContentPage
             var currentUser = await _authService.GetCurrentUserAsync();
             if (currentUser != null && await _authService.IsSessionValidAsync())
             {
-                ShowStatus($"Welcome back, {currentUser.FullName}!", false);
+                ShowStatus(L.Get("WelcomeUser", currentUser.FullName), false);
                 await Task.Delay(1000);
-
-                // Navigate to main app with tabbed interface
                 await Shell.Current.GoToAsync("//main/dashboard");
             }
         }
@@ -338,5 +355,12 @@ public partial class MainPage : ContentPage
         {
             System.Diagnostics.Debug.WriteLine($"Session check error: {ex.Message}");
         }
+    }
+
+    protected override void OnDisappearing()
+    {
+        base.OnDisappearing();
+        // Unsubscribe from language changes to prevent memory leaks
+        _languageManager.LanguageChanged -= OnLanguageChanged;
     }
 }

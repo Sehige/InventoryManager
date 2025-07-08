@@ -21,6 +21,8 @@ public partial class DashboardPage : ContentPage
 
     // Timer for updating the current time display
     private IDispatcherTimer? _timeTimer;
+    private readonly LanguageManager _languageManager;
+    private string _userName = "user";
 
     /// <summary>
     /// Constructor - sets up the dashboard with all required services
@@ -33,12 +35,41 @@ public partial class DashboardPage : ContentPage
         _databaseService = new DatabaseService();
         _authService = new AuthService(_databaseService);
         _inventoryService = new InventoryService(_databaseService, _authService);
+        _languageManager = App.GetLanguageManager() ?? new LanguageManager();
+        _languageManager.LanguageChanged += OnLanguageChanged;
+
+        UpdateUIText();
 
         // Start loading user information immediately
         _ = LoadUserInfoAsync();
 
         // Set up a timer to update the current time every second
         SetupTimeTimer();
+    }
+
+    private void UpdateUIText()
+    {
+        // Update page title
+        Title = L.Get("Dashboard");
+
+        // Update labels - use the x:Name from XAML
+        WelcomeLabel.Text = L.Get("WelcomeUser", _userName);
+        RefreshUsersBtn.Text = $"🔄 {L.Get("RefreshUserList")}";
+        TestDatabaseBtn.Text = $"🔧 {L.Get("TestDatabase")}";
+        CreateTestUserBtn.Text = $"👤 {L.Get("CreateTestUser")}";
+        ViewAppInfoBtn.Text = $"ℹ️ {L.Get("AppInfo")}";
+        LogoutBtn.Text = $"🚪 {L.Get("Logout")}";
+
+        // Update any other text elements
+        CurrentTimeLabel.Text = L.Get("CurrentTime", DateTime.Now.ToString());
+
+        // If you have DisplayAlert calls, update them too:
+        // await DisplayAlert(L.Get("Error"), L.Get("ErrorMessage"), L.Get("OK"));
+    }
+
+    private void OnLanguageChanged(object? sender, string newLanguage)
+    {
+        UpdateUIText();
     }
 
     /// <summary>
@@ -68,6 +99,7 @@ public partial class DashboardPage : ContentPage
             {
                 // Display welcome message with user's name
                 WelcomeLabel.Text = $"Welcome, {currentUser.FullName}! 👋";
+                _userName = currentUser.FullName;
 
                 // Show detailed user information
                 UserInfoLabel.Text =

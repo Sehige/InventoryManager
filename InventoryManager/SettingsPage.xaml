@@ -1,0 +1,128 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<!-- SettingsPage.xaml - Simple settings page with language toggle -->
+
+<ContentPage x:Class="InventoryManager.SettingsPage"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:InventoryManager.Controls"
+             Title="Settings"
+             BackgroundColor="White">
+
+    <ScrollView>
+        <VerticalStackLayout Spacing="20" Padding="20">
+
+            <!-- Header -->
+            <Border BackgroundColor="DarkBlue" 
+                    StrokeShape="RoundRectangle 10"
+                    Stroke="Transparent"
+                    Padding="20"
+                    Shadow="{Shadow Brush=Black, Offset='2,2', Radius=4, Opacity=0.3}">
+                <StackLayout>
+                    <Label x:Name="SettingsHeaderLabel" 
+                           Text="Settings"
+                           FontSize="22"
+                           FontAttributes="Bold"
+                           TextColor="White"
+                           HorizontalOptions="Center" />
+                </StackLayout>
+            </Border>
+
+            <!-- Language Settings Section -->
+            <Border BackgroundColor="LightBlue" 
+                    StrokeShape="RoundRectangle 10"
+                    Stroke="Transparent"
+                    Padding="20">
+                <StackLayout Spacing="15">
+                    <Label x:Name="LanguageSectionLabel"
+                           Text="Language"
+                           FontSize="18" 
+                           FontAttributes="Bold"
+                           TextColor="DarkBlue" />
+
+                    <Label x:Name="CurrentLanguageLabel"
+                           FontSize="14"
+                           TextColor="Gray" />
+
+                    <!-- Language Toggle -->
+                    <!--<controls:LanguageToggle HorizontalOptions="Start" />-->
+
+					<Button x:Name="ToggleButton"
+							Text="🇬🇧 EN"
+							BackgroundColor="Transparent"
+							TextColor="DarkBlue"
+							FontSize="14"
+							FontAttributes="Bold"
+							Clicked="OnToggleClicked" />
+
+                    <Label x:Name="LanguageHintLabel"
+                           Text="Click to toggle between English and Romanian"
+                           FontSize="12"
+                           TextColor="Gray" />
+                </StackLayout>
+            </Border>
+
+            <!-- User Info Section -->
+            <Border BackgroundColor="LightGreen" 
+                    StrokeShape="RoundRectangle 10"
+                    Stroke="Transparent"
+                    Padding="20">
+                <StackLayout Spacing="10">
+                    <Label x:Name="UserInfoSectionLabel"
+                           Text="User Information"
+                           FontSize="18" 
+                           FontAttributes="Bold"
+                           TextColor="DarkGreen" />
+
+                    <Label x:Name="UserDetailsLabel"
+                           FontSize="14"
+                           TextColor="Black"
+                           LineBreakMode="WordWrap" />
+                </StackLayout>
+            </Border>
+
+            <!-- App Info Section -->
+            <Border BackgroundColor="LightGray" 
+                    StrokeShape="RoundRectangle 10"
+                    Stroke="Transparent"
+                    Padding="20">
+                <StackLayout Spacing="10">
+                    <Label x:Name="AppInfoSectionLabel"
+                           Text="Application Information"
+                           FontSize="18" 
+                           FontAttributes="Bold"
+                           TextColor="DarkGray" />
+
+                    <Label x:Name="AppVersionLabel"
+                           FontSize="14"
+                           TextColor="Black" />
+
+                    <Label x:Name="DeviceInfoLabel"
+                           FontSize="14"
+                           TextColor="Black"
+                           LineBreakMode="WordWrap" />
+                </StackLayout>
+            </Border>
+
+            <!-- Action Buttons -->
+            <StackLayout Spacing="10" Margin="0,20,0,0">
+                <Button x:Name="BackButton"
+                        Text="Back to Dashboard"
+                        Clicked="OnBackClicked"
+                        BackgroundColor="DarkBlue"
+                        TextColor="White"
+                        CornerRadius="8"
+                        HeightRequest="45" />
+
+                <Button x:Name="LogoutButton"
+                        Text="Logout"
+                        Clicked="OnLogoutClicked"
+                        BackgroundColor="Red"
+                        TextColor="White"
+                        CornerRadius="8"
+                        HeightRequest="45" />
+            </StackLayout>
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>
