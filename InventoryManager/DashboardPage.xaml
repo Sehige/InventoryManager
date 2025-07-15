@@ -37,6 +37,33 @@
                                HorizontalOptions="Center" />
                     </StackLayout>
                 </Frame>
+                <Frame BackgroundColor="#E8F5E9"
+                       BorderColor="#4CAF50"
+                       CornerRadius="10"
+                       Padding="15"
+                       Margin="10">
+                    <Grid ColumnDefinitions="Auto,*,Auto">
+                        <Label Text="📷"
+                               FontSize="40"
+                               VerticalOptions="Center"
+                               Grid.Column="0" />
+                        <VerticalStackLayout Grid.Column="1"
+                           Margin="10,0">
+                            <Label Text="Quick QR Scan"
+                   FontAttributes="Bold"
+                   FontSize="18" />
+                            <Label Text="Scan inventory items quickly"
+                   TextColor="Gray"
+                   FontSize="14" />
+                        </VerticalStackLayout>
+                        <Button Text="Scan"
+                BackgroundColor="#4CAF50"
+                TextColor="White"
+                Grid.Column="2"
+                VerticalOptions="Center"
+                Clicked="OnQuickScanClicked" />
+                    </Grid>
+                </Frame>
 
                 <!-- User Information Section -->
                 <!-- Shows details about the currently logged-in user -->

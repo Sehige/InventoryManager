@@ -465,5 +465,126 @@ namespace InventoryManager.Services
                 return new List<InventoryTransaction>();
             }
         }
+
+        /// <summary>
+        /// Get an inventory item by its item code (for QR scanning)
+        /// </summary>
+        public async Task<InventoryItem?> GetItemByCodeAsync(string itemCode)
+        {
+            try
+            {
+                var currentUser = await _authService.GetCurrentUserAsync();
+                if (currentUser == null)
+                {
+                    throw new UnauthorizedAccessException("User must be logged in to access inventory");
+                }
+
+                var item = await _databaseService.InventoryItems
+                    .FirstOrDefaultAsync(i => i.ItemCode == itemCode && i.IsActive);
+
+                if (item == null)
+                    return null;
+
+                // Check if user has access to this item's location
+                var accessibleLocations = WarehouseLocationHelper.GetAccessibleLocations(currentUser.Role);
+                if (!accessibleLocations.Contains(item.Location))
+                {
+                    throw new UnauthorizedAccessException("You don't have access to items in this location");
+                }
+
+                return item;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error getting item by code: {ex.Message}");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Record a QR scan transaction
+        /// </summary>
+        public async Task<bool> RecordQRScanAsync(string itemCode, string scanSessionId, string notes = "QR Scan")
+        {
+            try
+            {
+                var currentUser = await _authService.GetCurrentUserAsync();
+                if (currentUser == null)
+                {
+                    throw new UnauthorizedAccessException("User must be logged in");
+                }
+
+                var item = await GetItemByCodeAsync(itemCode);
+                if (item == null)
+                    return false;
+
+                // Create a transaction record for the scan
+                var transaction = new InventoryTransaction
+                {
+                    InventoryItemId = item.Id,
+                    TransactionType = "Scan",
+                    QuantityChange = 0, // Just recording the scan, no quantity change
+                    Timestamp = DateTime.UtcNow,
+                    UserId = currentUser.Id,
+                    Notes = notes,
+                    ScanSessionId = scanSessionId
+                };
+
+                _databaseService.Add(transaction);
+                await _databaseService.SaveChangesAsync();
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error recording QR scan: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Quick stock adjustment from QR scan page
+        /// </summary>
+        public async Task<bool> QuickStockAdjustmentAsync(string itemCode, int adjustment, string reason = "Quick adjustment from QR scan")
+        {
+            try
+            {
+                var item = await GetItemByCodeAsync(itemCode);
+                if (item == null)
+                    return false;
+
+                return await AdjustInventoryQuantityAsync(item.Id, adjustment, "Adjustment", reason);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in quick stock adjustment: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Get recent scans for an item
+        /// </summary>
+        public async Task<List<InventoryTransaction>> GetRecentScansAsync(string itemCode, int count = 10)
+        {
+            try
+            {
+                var item = await GetItemByCodeAsync(itemCode);
+                if (item == null)
+                    return new List<InventoryTransaction>();
+
+                return await _databaseService.InventoryTransactions
+                    .Where(t => t.InventoryItemId == item.Id && t.TransactionType == "Scan")
+                    .OrderByDescending(t => t.Timestamp)
+                    .Take(count)
+                    .Include(t => t.User)
+                    .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error getting recent scans: {ex.Message}");
+                return new List<InventoryTransaction>();
+            }
+        }
     }
 }

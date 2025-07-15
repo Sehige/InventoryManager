@@ -4,6 +4,7 @@
 
 using InventoryManager.Models;
 using InventoryManager.Services;
+using InventoryManager.Views;
 using Microsoft.EntityFrameworkCore;
 
 namespace InventoryManager;
@@ -504,5 +505,37 @@ public partial class DashboardPage : ContentPage
         base.OnNavigatedFrom(args);
         _timeTimer?.Stop();
         _timeTimer = null;
+    }
+
+    private async void OnQuickScanClicked(object sender, EventArgs e)
+    {
+        try
+        {
+            // Check camera permissions
+            var status = await Permissions.CheckStatusAsync<Permissions.Camera>();
+
+            if (status != PermissionStatus.Granted)
+            {
+                status = await Permissions.RequestAsync<Permissions.Camera>();
+            }
+
+            if (status == PermissionStatus.Granted)
+            {
+                // Navigate to QR scanner page
+                await Navigation.PushAsync(new QRScannerPage(_inventoryService, _authService));
+            }
+            else
+            {
+                await DisplayAlert(L.Get("PermissionDenied"),
+                    L.Get("CameraPermissionRequired"),
+                    L.Get("OK"));
+            }
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert(L.Get("Error"),
+                $"{L.Get("FailedToOpenScanner")}: {ex.Message}",
+                L.Get("OK"));
+        }
     }
 }

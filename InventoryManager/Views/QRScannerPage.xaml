@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:zxing="clr-namespace:ZXing.Net.Maui.Controls;assembly=ZXing.Net.MAUI.Controls"
+             x:Class="InventoryManager.Views.QRScannerPage"
+             Title="Scan Product QR Code"
+             BackgroundColor="Black">
+
+    <Grid>
+        <!-- Camera View -->
+        <zxing:CameraBarcodeReaderView
+            x:Name="cameraView"
+            BarcodesDetected="OnBarcodesDetected"
+            IsDetecting="True"
+            IsTorchOn="False"
+            CameraLocation="Rear" />
+
+        <!-- Scanning Overlay -->
+        <Grid>
+            <!-- Semi-transparent background -->
+            <BoxView Color="Black" Opacity="0.5" />
+
+            <!-- Scanning frame -->
+            <Frame 
+                WidthRequest="250"
+                HeightRequest="250"
+                BackgroundColor="Transparent"
+                BorderColor="White"
+                CornerRadius="10"
+                HorizontalOptions="Center"
+                VerticalOptions="Center"
+                HasShadow="False">
+
+                <!-- Corner markers -->
+                <Grid>
+                    <!-- Top-Left Corner -->
+                    <BoxView Color="LimeGreen" WidthRequest="30" HeightRequest="3"
+                             HorizontalOptions="Start" VerticalOptions="Start" />
+                    <BoxView Color="LimeGreen" WidthRequest="3" HeightRequest="30"
+                             HorizontalOptions="Start" VerticalOptions="Start" />
+
+                    <!-- Top-Right Corner -->
+                    <BoxView Color="LimeGreen" WidthRequest="30" HeightRequest="3"
+                             HorizontalOptions="End" VerticalOptions="Start" />
+                    <BoxView Color="LimeGreen" WidthRequest="3" HeightRequest="30"
+                             HorizontalOptions="End" VerticalOptions="Start" />
+
+                    <!-- Bottom-Left Corner -->
+                    <BoxView Color="LimeGreen" WidthRequest="30" HeightRequest="3"
+                             HorizontalOptions="Start" VerticalOptions="End" />
+                    <BoxView Color="LimeGreen" WidthRequest="3" HeightRequest="30"
+                             HorizontalOptions="Start" VerticalOptions="End" />
+
+                    <!-- Bottom-Right Corner -->
+                    <BoxView Color="LimeGreen" WidthRequest="30" HeightRequest="3"
+                             HorizontalOptions="End" VerticalOptions="End" />
+                    <BoxView Color="LimeGreen" WidthRequest="3" HeightRequest="30"
+                             HorizontalOptions="End" VerticalOptions="End" />
+
+                    <!-- Scanning line animation -->
+                    <BoxView x:Name="scanLine" 
+                             Color="LimeGreen" 
+                             HeightRequest="2"
+                             Opacity="0.7"
+                             VerticalOptions="Start" />
+                </Grid>
+            </Frame>
+        </Grid>
+
+        <!-- Instructions and Controls -->
+        <VerticalStackLayout VerticalOptions="End" Margin="20">
+            <Label Text="Position QR code within the frame"
+                   TextColor="White"
+                   FontSize="16"
+                   HorizontalTextAlignment="Center"
+                   Margin="0,0,0,20" />
+
+            <Grid ColumnDefinitions="*,*,*" Margin="0,0,0,30">
+                <!-- Torch Toggle -->
+                <Button Grid.Column="0"
+                        x:Name="torchButton"
+                        Text="🔦"
+                        FontSize="24"
+                        BackgroundColor="DarkGray"
+                        TextColor="White"
+                        WidthRequest="60"
+                        HeightRequest="60"
+                        CornerRadius="30"
+                        HorizontalOptions="Center"
+                        Clicked="OnTorchClicked" />
+
+                <!-- Manual Input -->
+                <Button Grid.Column="1"
+                        Text="⌨️"
+                        FontSize="24"
+                        BackgroundColor="DarkGray"
+                        TextColor="White"
+                        WidthRequest="60"
+                        HeightRequest="60"
+                        CornerRadius="30"
+                        HorizontalOptions="Center"
+                        Clicked="OnManualInputClicked" />
+
+                <!-- Cancel -->
+                <Button Grid.Column="2"
+                        Text="✖️"
+                        FontSize="24"
+                        BackgroundColor="DarkGray"
+                        TextColor="White"
+                        WidthRequest="60"
+                        HeightRequest="60"
+                        CornerRadius="30"
+                        HorizontalOptions="Center"
+                        Clicked="OnCancelClicked" />
+            </Grid>
+        </VerticalStackLayout>
+
+        <!-- Loading Indicator (shown during processing) -->
+        <Grid x:Name="loadingOverlay" IsVisible="False" BackgroundColor="#80000000">
+            <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center">
+                <ActivityIndicator IsRunning="True" Color="White" WidthRequest="50" HeightRequest="50" />
+                <Label Text="Processing QR Code..." TextColor="White" Margin="0,10,0,0" />
+            </VerticalStackLayout>
+        </Grid>
+    </Grid>
+</ContentPage>

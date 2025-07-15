@@ -4,6 +4,7 @@
 using InventoryManager.Services;
 using InventoryManager.Models;
 using System.Collections.ObjectModel;
+using InventoryManager.Views;
 
 namespace InventoryManager;
 
@@ -583,6 +584,41 @@ public partial class InventoryPage : ContentPage
     {
         base.OnAppearing();
         await LoadPageDataAsync();
+
+        // Refresh inventory list in case items were updated from QR scanner
+        //_ = LoadInventoryItemsAsync();
+    }
+
+    private async void OnScanQRClicked(object sender, EventArgs e)
+    {
+        try
+        {
+            // Check camera permissions first
+            var status = await Permissions.CheckStatusAsync<Permissions.Camera>();
+
+            if (status != PermissionStatus.Granted)
+            {
+                status = await Permissions.RequestAsync<Permissions.Camera>();
+            }
+
+            if (status == PermissionStatus.Granted)
+            {
+                // Navigate to QR scanner page
+                await Navigation.PushAsync(new QRScannerPage(_inventoryService, _authService));
+            }
+            else
+            {
+                await DisplayAlert("Permission Denied",
+                    "Camera permission is required to scan QR codes.",
+                    "OK");
+            }
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Error",
+                $"Failed to open QR scanner: {ex.Message}",
+                "OK");
+        }
     }
 }
 

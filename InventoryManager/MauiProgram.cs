@@ -1,7 +1,9 @@
 ﻿// MauiProgram.cs - Updated with language manager registration
 using CommunityToolkit.Maui;
 using InventoryManager.Services;
+using InventoryManager.Views;
 using Microsoft.Extensions.Logging;
+using ZXing.Net.Maui.Controls;
 
 namespace InventoryManager;
 
@@ -83,6 +85,11 @@ public static class MauiProgram
         builder.Services.AddTransient<DashboardPage>(); // Overview and stats
         builder.Services.AddTransient<InventoryPage>(); // Inventory list and management
         builder.Services.AddTransient<SettingsPage>(); // Settings and language selection
+
+        builder.Services.AddTransient<QRScannerPage>(); // QR code scanning
+
+        // If you have an ItemDetailsPage for showing scanned items
+        builder.Services.AddTransient<ItemDetailsPage>(); // Item details from QR scan
 
         System.Diagnostics.Debug.WriteLine("All pages registered successfully");
     }

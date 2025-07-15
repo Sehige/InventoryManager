@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="InventoryManager.ItemDetailsPage"
+             Title="Item Details">
+
+    <ScrollView Padding="20">
+        <VerticalStackLayout Spacing="15">
+
+            <!-- Item Header -->
+            <Frame BackgroundColor="#F5F5F5" 
+                   CornerRadius="10" 
+                   Padding="15">
+                <VerticalStackLayout>
+                    <Label x:Name="ItemNameLabel" 
+                           FontSize="24" 
+                           FontAttributes="Bold" />
+                    <Label x:Name="ItemCodeLabel" 
+                           FontSize="16" 
+                           TextColor="Gray" />
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Stock Information -->
+            <Frame BackgroundColor="#E3F2FD" 
+                   CornerRadius="10" 
+                   Padding="15">
+                <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto">
+                    <Label Text="Current Stock:" 
+                           FontAttributes="Bold" 
+                           Grid.Row="0" Grid.Column="0" />
+                    <Label x:Name="CurrentStockLabel" 
+                           Grid.Row="0" Grid.Column="1" 
+                           HorizontalTextAlignment="End" />
+
+                    <Label Text="Location:" 
+                           FontAttributes="Bold" 
+                           Grid.Row="1" Grid.Column="0" />
+                    <Label x:Name="LocationLabel" 
+                           Grid.Row="1" Grid.Column="1" 
+                           HorizontalTextAlignment="End" />
+                </Grid>
+            </Frame>
+
+            <!-- Quick Actions -->
+            <Label Text="Quick Stock Adjustment" 
+                   FontAttributes="Bold" 
+                   FontSize="18" 
+                   Margin="0,10,0,0" />
+
+            <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="10">
+                <Button Text="-10" 
+                        BackgroundColor="#EF5350" 
+                        TextColor="White"
+                        Clicked="OnAdjustStockClicked" 
+                        CommandParameter="-10" 
+                        Grid.Column="0" />
+                <Button Text="-1" 
+                        BackgroundColor="#FFA726" 
+                        TextColor="White"
+                        Clicked="OnAdjustStockClicked" 
+                        CommandParameter="-1" 
+                        Grid.Column="1" />
+                <Button Text="+1" 
+                        BackgroundColor="#66BB6A" 
+                        TextColor="White"
+                        Clicked="OnAdjustStockClicked" 
+                        CommandParameter="1" 
+                        Grid.Column="2" />
+                <Button Text="+10" 
+                        BackgroundColor="#43A047" 
+                        TextColor="White"
+                        Clicked="OnAdjustStockClicked" 
+                        CommandParameter="10" 
+                        Grid.Column="3" />
+            </Grid>
+
+            <!-- Additional Details -->
+            <Frame BackgroundColor="#F5F5F5" 
+                   CornerRadius="10" 
+                   Padding="15" 
+                   Margin="0,10,0,0">
+                <Grid RowDefinitions="Auto,Auto,Auto,Auto" 
+                      ColumnDefinitions="120,*" 
+                      RowSpacing="10">
+
+                    <Label Text="Category:" 
+                           FontAttributes="Bold" 
+                           Grid.Row="0" Grid.Column="0" />
+                    <Label x:Name="CategoryLabel" 
+                           Grid.Row="0" Grid.Column="1" />
+
+                    <Label Text="Unit:" 
+                           FontAttributes="Bold" 
+                           Grid.Row="1" Grid.Column="0" />
+                    <Label x:Name="UnitLabel" 
+                           Grid.Row="1" Grid.Column="1" />
+
+                    <Label Text="Unit Cost:" 
+                           FontAttributes="Bold" 
+                           Grid.Row="2" Grid.Column="0" />
+                    <Label x:Name="UnitCostLabel" 
+                           Grid.Row="2" Grid.Column="1" />
+
+                    <Label Text="Last Modified:" 
+                           FontAttributes="Bold" 
+                           Grid.Row="3" Grid.Column="0" />
+                    <Label x:Name="LastModifiedLabel" 
+                           Grid.Row="3" Grid.Column="1" />
+                </Grid>
+            </Frame>
+
+            <!-- Scan Info (if from QR scan) -->
+            <Frame x:Name="ScanInfoFrame" 
+                   BackgroundColor="#E8F5E9" 
+                   CornerRadius="10" 
+                   Padding="15" 
+                   IsVisible="False">
+                <VerticalStackLayout>
+                    <Label Text="Scan Information" 
+                           FontAttributes="Bold" 
+                           FontSize="16" />
+                    <Label x:Name="ScanTimeLabel" 
+                           FontSize="14" />
+                </VerticalStackLayout>
+            </Frame>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

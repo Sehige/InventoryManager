@@ -15,6 +15,10 @@
             <converters:BoolToColorConverter x:Key="BoolToColorConverter" />
         </ResourceDictionary>
     </ContentPage.Resources>
+    
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Scan QR" Clicked="OnScanQRClicked" IconImageSource="qr_icon.png" />
+    </ContentPage.ToolbarItems>
 
     <!-- RefreshView for pull-to-refresh functionality -->
     <RefreshView x:Name="RefreshView" 
