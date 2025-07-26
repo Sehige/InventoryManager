@@ -1,96 +1,101 @@
-﻿// MauiProgram.cs - Updated with language manager registration
-using CommunityToolkit.Maui;
-using InventoryManager.Services;
-using InventoryManager.Views;
+﻿// MauiProgram.cs - Fixed with proper method chaining
 using Microsoft.Extensions.Logging;
-using ZXing.Net.Maui.Controls;
+using InventoryManager.Services;
+using InventoryManager.Models;
+using CommunityToolkit.Maui;
+using System.Diagnostics;
 
 namespace InventoryManager;
 
-/// <summary>
-/// Main entry point for configuring the MAUI application
-/// Sets up all services, pages, and dependencies
-/// </summary>
 public static class MauiProgram
 {
-    /// <summary>
-    /// Creates and configures the MAUI application
-    /// This is called by the platform-specific code to start the app
-    /// </summary>
     public static MauiApp CreateMauiApp()
     {
+        Debug.WriteLine("=== MAUIPROGRAM START ===");
+
         var builder = MauiApp.CreateBuilder();
 
-        // Configure the app to use the App class as the main application
+        Debug.WriteLine("Configuring MauiApp...");
         builder
             .UseMauiApp<App>()
-            .UseMauiCommunityToolkit() // FIXED: This must be chained directly after UseMauiApp<T>()
+            .UseMauiCommunityToolkit() // Chain this directly after UseMauiApp
             .ConfigureFonts(fonts =>
             {
-                // Add default fonts
                 fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
                 fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
             });
 
-        // Register all services for dependency injection
-        RegisterServices(builder);
+        Debug.WriteLine("Registering services...");
 
-        // Register all pages for dependency injection
-        RegisterPages(builder);
+        // Register existing services
+        try
+        {
+            // Database must be singleton
+            builder.Services.AddSingleton<DatabaseService>();
+            Debug.WriteLine("DatabaseService registered");
+
+            // Auth service depends on database
+            builder.Services.AddSingleton<AuthService>();
+            Debug.WriteLine("AuthService registered");
+
+            // Inventory service depends on both
+            builder.Services.AddSingleton<InventoryService>();
+            Debug.WriteLine("InventoryService registered");
+
+            // Language manager
+            builder.Services.AddSingleton<LanguageManager>();
+            Debug.WriteLine("LanguageManager registered");
+        }
+            catch (Exception ex)
+            {
+            Debug.WriteLine($"ERROR registering core services: {ex}");
+            throw;
+        }
+
+        // Register sync configuration
+        builder.Services.AddSingleton<SyncConfiguration>(sp =>
+        {
+            // Load from preferences or use defaults
+            return new SyncConfiguration
+            {
+                AutoSyncEnabled = Preferences.Get("AutoSyncEnabled", true),
+                SyncInterval = TimeSpan.FromMinutes(Preferences.Get("SyncIntervalMinutes", 15)),
+                DefaultConflictResolution = Enum.Parse<ConflictResolutionStrategy>(
+                    Preferences.Get("DefaultConflictResolution", "ServerWins")),
+                SyncOnlyOnWifi = Preferences.Get("SyncOnlyOnWifi", false),
+                MaxRetryAttempts = Preferences.Get("MaxRetryAttempts", 3),
+                RetryDelay = TimeSpan.FromSeconds(Preferences.Get("RetryDelaySeconds", 30)),
+                EnableBackgroundSync = Preferences.Get("EnableBackgroundSync", true)
+            };
+        });
+
+        // Register HTTP client for cloud API
+        builder.Services.AddHttpClient<ICloudApiClient, CloudApiClient>(client =>
+        {
+            // Configure base URL from preferences or configuration
+            var baseUrl = Preferences.Get("CloudApiBaseUrl", "https://api.inventorymanager.com");
+            client.BaseAddress = new Uri(baseUrl);
+            client.Timeout = TimeSpan.FromSeconds(30);
+        });
+
+        // Register sync services
+        Debug.WriteLine("Registering pages...");
+        builder.Services.AddSingleton<IConnectivityService, ConnectivityService>();
+        builder.Services.AddScoped<IConflictResolver, ConflictResolver>();
+        builder.Services.AddScoped<IOfflineQueueService, OfflineQueueService>();
+        builder.Services.AddScoped<ISyncService, SyncEngine>();
+
+        // Register pages
+        builder.Services.AddTransient<MainPage>();
+        builder.Services.AddTransient<DashboardPage>();
+        builder.Services.AddTransient<InventoryPage>();
 
 #if DEBUG
-        // Add debug logging in development
         builder.Logging.AddDebug();
-        System.Diagnostics.Debug.WriteLine("MauiProgram: Debug logging enabled");
+        Debug.WriteLine("Debug logging enabled");
 #endif
 
-        // Build and return the configured app
-        var app = builder.Build();
-        System.Diagnostics.Debug.WriteLine("MauiProgram: App built successfully");
-
-        return app;
-    }
-
-    /// <summary>
-    /// Register all services for dependency injection
-    /// Services are registered in dependency order (dependencies first)
-    /// </summary>
-    private static void RegisterServices(MauiAppBuilder builder)
-    {
-        // Core database service - Must be registered first since other services depend on it
-        builder.Services.AddSingleton<DatabaseService>();
-
-        // Authentication service - Depends on DatabaseService
-        builder.Services.AddSingleton<AuthService>();
-
-        // Inventory service - Depends on both DatabaseService and AuthService
-        builder.Services.AddSingleton<InventoryService>();
-
-        // Language manager - For multi-language support
-        builder.Services.AddSingleton<LanguageManager>();
-
-        System.Diagnostics.Debug.WriteLine("All core services registered successfully");
-    }
-
-    /// <summary>
-    /// Register all pages for dependency injection and navigation
-    /// Pages are registered as Transient so we get fresh instances when needed
-    /// </summary>
-    private static void RegisterPages(MauiAppBuilder builder)
-    {
-        // Authentication pages
-        builder.Services.AddTransient<MainPage>(); // Login/Register page
-
-        // Main application pages
-        builder.Services.AddTransient<DashboardPage>(); // Overview and stats
-        builder.Services.AddTransient<InventoryPage>(); // Inventory list and management
-        builder.Services.AddTransient<SettingsPage>(); // Settings and language selection
-
-        builder.Services.AddTransient<QRScannerPage>(); // QR code scanning
-
-        // If you have an ItemDetailsPage for showing scanned items
-        builder.Services.AddTransient<ItemDetailsPage>(); // Item details from QR scan
-
-        System.Diagnostics.Debug.WriteLine("All pages registered successfully");
+        Debug.WriteLine("Building MauiApp...");
+        return builder.Build();
     }
 }

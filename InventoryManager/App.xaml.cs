@@ -1,132 +1,214 @@
-﻿// App.xaml.cs - Updated with simple language manager initialization
+﻿// App.xaml.cs - Updated with comprehensive error handling and debugging
 using InventoryManager.Services;
+using System.Diagnostics;
 
 namespace InventoryManager;
 
-/// <summary>
-/// Main application class with language support
-/// </summary>
 public partial class App : Application
 {
-    // Services for handling authentication, database operations, and language
-    private DatabaseService? _databaseService;
-    private AuthService? _authService;
-    private LanguageManager? _languageManager;
+    private static LanguageManager? _languageManager;
+    private static AuthService? _authService;
+    private readonly ISyncService? _syncService;
+    private readonly DatabaseService _databaseService;
 
-    /// <summary>
-    /// Constructor - initializes the application
-    /// </summary>
-    public App()
-    {
-        InitializeComponent();
-
-        // Initialize services including language manager
-        InitializeServices();
-
-        // Set the main page to our shell
-        MainPage = new AppShell();
-    }
-
-    /// <summary>
-    /// Initialize core services for the application
-    /// This sets up the database, authentication, and language systems
-    /// </summary>
-    private void InitializeServices()
+    public App(IServiceProvider serviceProvider)
     {
         try
         {
-            // Create service instances
-            _databaseService = new DatabaseService();
-            _authService = new AuthService(_databaseService);
-            _languageManager = new LanguageManager();
+            Debug.WriteLine("=== APP STARTUP BEGIN ===");
+            InitializeComponent();
+            Debug.WriteLine("InitializeComponent completed");
 
-            // Initialize the static language helper
-            L.Initialize(_languageManager);
-
-            // Initialize database asynchronously
-            // We don't await this to avoid blocking app startup
-            _ = InitializeDatabaseAsync();
-        }
-        catch (Exception ex)
-        {
-            // Log initialization error
-            System.Diagnostics.Debug.WriteLine($"Service initialization error: {ex.Message}");
-        }
-    }
-
-    /// <summary>
-    /// Initialize the database in the background
-    /// This ensures the database is ready when users need it
-    /// </summary>
-    private async Task InitializeDatabaseAsync()
-    {
-        try
-        {
-            if (_databaseService != null)
+            // Get services from DI with error handling
+            try
             {
-                await _databaseService.InitializeAsync();
-                System.Diagnostics.Debug.WriteLine("Database initialized successfully");
+                _databaseService = serviceProvider.GetRequiredService<DatabaseService>();
+                Debug.WriteLine("DatabaseService obtained");
             }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"CRITICAL: Failed to get DatabaseService: {ex.Message}");
+                throw;
+            }
+
+            try
+            {
+                _authService = serviceProvider.GetRequiredService<AuthService>();
+                Debug.WriteLine("AuthService obtained");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"CRITICAL: Failed to get AuthService: {ex.Message}");
+                throw;
+            }
+
+            try
+            {
+                _syncService = serviceProvider.GetService<ISyncService>();
+                Debug.WriteLine("SyncService obtained");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"WARNING: Failed to get SyncService: {ex.Message}");
+                // Don't throw - sync is optional
+            }
+
+            try
+            {
+                _languageManager = serviceProvider.GetRequiredService<LanguageManager>();
+                Debug.WriteLine("LanguageManager obtained");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"CRITICAL: Failed to get LanguageManager: {ex.Message}");
+                throw;
+            }
+
+            // Initialize database in background with error handling
+            Task.Run(async () =>
+            {
+                try
+                {
+                    Debug.WriteLine("Starting database initialization...");
+                    await _databaseService.InitializeAsync();
+                    Debug.WriteLine("Database initialized successfully");
+
+                    // Start background sync if configured
+                    if (_syncService != null)
+                    {
+                        Debug.WriteLine("Starting background sync...");
+                        _syncService.StartBackgroundSync();
+                        Debug.WriteLine("Background sync started");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"ERROR in database initialization: {ex}");
+
+                    // Try to show error to user
+                    await MainThread.InvokeOnMainThreadAsync(async () =>
+                    {
+                        try
+                        {
+                            if (MainPage != null)
+                            {
+                                await MainPage.DisplayAlert("Database Error",
+                                    $"Failed to initialize database: {ex.Message}", "OK");
+                            }
+                        }
+                        catch
+                        {
+                            // Can't show alert
+                        }
+                    });
+                }
+            });
+
+            Debug.WriteLine("Creating AppShell...");
+            MainPage = new AppShell();
+            Debug.WriteLine("=== APP STARTUP COMPLETE ===");
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Database initialization error: {ex.Message}");
+            Debug.WriteLine($"CRITICAL ERROR IN APP CONSTRUCTOR: {ex}");
+
+            // Try to show a basic error page
+            try
+            {
+                MainPage = new ContentPage
+                {
+                    Content = new VerticalStackLayout
+                    {
+                        Padding = 20,
+                        Children =
+                        {
+                            new Label
+                            {
+                                Text = "Critical Startup Error",
+                                FontSize = 24,
+                                TextColor = Colors.Red,
+                                HorizontalOptions = LayoutOptions.Center
+                            },
+                            new Label
+                            {
+                                Text = ex.Message,
+                                FontSize = 16,
+                                Margin = new Thickness(0, 20)
+                            },
+                            new Label
+                            {
+                                Text = ex.StackTrace ?? "No stack trace available",
+                                FontSize = 12,
+                                TextColor = Colors.Gray
+                            }
+                        }
+                    }
+                };
+            }
+            catch
+            {
+                // Even the error page failed - app will crash
+            }
+
+            throw; // Re-throw to see in debugger
         }
     }
 
-    /// <summary>
-    /// Get the current authentication service instance
-    /// This allows other parts of the app to access authentication if needed
-    /// </summary>
+    // Static getters with null checks
     public static AuthService? GetAuthService()
     {
-        if (Current is App app)
-        {
-            return app._authService;
-        }
-        return null;
+        Debug.WriteLine($"GetAuthService called, returning: {_authService != null}");
+        return _authService;
     }
 
-    /// <summary>
-    /// Get the current language manager instance
-    /// This allows other parts of the app to access language manager if needed
-    /// </summary>
     public static LanguageManager? GetLanguageManager()
     {
-        if (Current is App app)
-        {
-            return app._languageManager;
-        }
-        return null;
+        Debug.WriteLine($"GetLanguageManager called, returning: {_languageManager != null}");
+        return _languageManager;
     }
 
-    /// <summary>
-    /// Override to handle when the app starts
-    /// Good place for any startup logic
-    /// </summary>
     protected override void OnStart()
     {
-        // Handle when your app starts
-        System.Diagnostics.Debug.WriteLine("InventoryManager App Started");
+        Debug.WriteLine("App.OnStart called");
+        base.OnStart();
+
+        try
+        {
+            _syncService?.StartBackgroundSync();
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Error in OnStart: {ex.Message}");
+        }
     }
 
-    /// <summary>
-    /// Override to handle when the app sleeps/goes to background
-    /// Good place to save any pending data
-    /// </summary>
     protected override void OnSleep()
     {
-        // Handle when your app sleeps
-        System.Diagnostics.Debug.WriteLine("InventoryManager App Sleeping");
+        Debug.WriteLine("App.OnSleep called");
+        base.OnSleep();
+
+        try
+        {
+            _syncService?.StopBackgroundSync();
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Error in OnSleep: {ex.Message}");
+        }
     }
 
-    /// <summary>
-    /// Override to handle when the app resumes from background
-    /// Good place to refresh any data
-    /// </summary>
     protected override void OnResume()
     {
-        // Handle when your app resumes
-        System.Diagnostics.Debug.WriteLine("InventoryManager App Resumed");
+        Debug.WriteLine("App.OnResume called");
+        base.OnResume();
+
+        try
+        {
+            _syncService?.StartBackgroundSync();
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Error in OnResume: {ex.Message}");
+        }
     }
 }

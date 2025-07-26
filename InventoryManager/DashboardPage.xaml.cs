@@ -360,7 +360,7 @@ public partial class DashboardPage : ContentPage
     /// </summary>
     private async void OnCreateTestUserClicked(object sender, EventArgs e)
     {
-        CreateTestUserBtn.IsEnabled = false;
+        /*CreateTestUserBtn.IsEnabled = false;
         CreateTestUserBtn.Text = "👤 Creating...";
 
         try
@@ -384,7 +384,7 @@ public partial class DashboardPage : ContentPage
         {
             CreateTestUserBtn.IsEnabled = true;
             CreateTestUserBtn.Text = "👤 Create Test User";
-        }
+        }*/
     }
 
     /// <summary>

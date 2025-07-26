@@ -1,94 +1,61 @@
-﻿// Models/InventoryModels.cs - Simplified Inventory Models with Location Enum
-// This approach treats locations like categories - simple, fast, and easy to understand
-// Think of this like having a dropdown list instead of a complex database relationship
+﻿// Models/InventoryModels.cs - COMPLETE REPLACEMENT
+// This fixes the enum conflicts and ensures all models work correctly with sync
 
+using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Linq;
 
 namespace InventoryManager.Models
 {
     /// <summary>
-    /// Enumeration of all possible warehouse locations
-    /// This is much simpler than a database table and perfect for fixed location lists
-    /// Add or remove locations here as your warehouse layout changes
+    /// Warehouse locations enum - using your existing values
     /// </summary>
     public enum WarehouseLocation
     {
-        MainWarehouse,
-        ColdStorage,
-        LoadingDock,
-        Workshop,
-        OfficeStorage,
-        OutdoorYard,
-        SafetyStation,
-        ChemicalStorage
+        MainWarehouse = 0,
+        LoadingDock = 1,
+        Workshop = 2,
+        OfficeStorage = 3,
+        ColdStorage = 4,
+        SecureVault = 5,
+        Overflow = 6,
+        Returns = 7,
+        Quarantine = 8
     }
 
     /// <summary>
-    /// Helper class to work with warehouse locations
-    /// This provides human-readable names and descriptions for your enum values
-    /// Think of this as a translation layer between code and user-friendly text
+    /// Extension methods for the WarehouseLocation enum
     /// </summary>
     public static class WarehouseLocationHelper
     {
-        /// <summary>
-        /// Convert enum values to user-friendly display names
-        /// This makes your UI much more professional and readable
-        /// </summary>
         public static string GetDisplayName(this WarehouseLocation location)
         {
             return location switch
             {
                 WarehouseLocation.MainWarehouse => "Main Warehouse",
-                WarehouseLocation.ColdStorage => "Cold Storage",
                 WarehouseLocation.LoadingDock => "Loading Dock",
                 WarehouseLocation.Workshop => "Workshop",
                 WarehouseLocation.OfficeStorage => "Office Storage",
-                WarehouseLocation.OutdoorYard => "Outdoor Yard",
-                WarehouseLocation.SafetyStation => "Safety Station",
-                WarehouseLocation.ChemicalStorage => "Chemical Storage",
+                WarehouseLocation.ColdStorage => "Cold Storage",
+                WarehouseLocation.SecureVault => "Secure Vault",
+                WarehouseLocation.Overflow => "Overflow Storage",
+                WarehouseLocation.Returns => "Returns Area",
+                WarehouseLocation.Quarantine => "Quarantine",
                 _ => location.ToString()
             };
         }
 
-        /// <summary>
-        /// Get a description of what's typically stored in each location
-        /// This helps users understand where items should be placed
-        /// </summary>
-        public static string GetDescription(this WarehouseLocation location)
-        {
-            return location switch
-            {
-                WarehouseLocation.MainWarehouse => "General storage for most inventory items",
-                WarehouseLocation.ColdStorage => "Temperature-controlled storage for sensitive materials",
-                WarehouseLocation.LoadingDock => "Temporary storage for incoming and outgoing shipments",
-                WarehouseLocation.Workshop => "Tools and materials for maintenance and repairs",
-                WarehouseLocation.OfficeStorage => "Office supplies and administrative materials",
-                WarehouseLocation.OutdoorYard => "Large items and materials stored outside",
-                WarehouseLocation.SafetyStation => "Safety equipment and emergency supplies",
-                WarehouseLocation.ChemicalStorage => "Hazardous materials and chemicals",
-                _ => "General storage location"
-            };
-        }
-
-        /// <summary>
-        /// Get all available locations as a list for dropdowns and pickers
-        /// This makes it easy to populate your UI controls
-        /// </summary>
         public static List<WarehouseLocation> GetAllLocations()
         {
             return Enum.GetValues<WarehouseLocation>().ToList();
         }
 
-        /// <summary>
-        /// Get locations that a specific user role can access
-        /// This implements your access control without complex database relationships
-        /// Admins see everything, operators see a subset
-        /// </summary>
         public static List<WarehouseLocation> GetAccessibleLocations(string userRole)
         {
             return userRole switch
             {
-                "Admin" => GetAllLocations(), // Admins can access all locations
+                "Admin" => GetAllLocations(),
                 "Manager" => new List<WarehouseLocation>
                 {
                     WarehouseLocation.MainWarehouse,
@@ -107,88 +74,82 @@ namespace InventoryManager.Models
     }
 
     /// <summary>
-    /// Simplified inventory item that uses the location enum
-    /// This is much cleaner and easier to work with than foreign key relationships
+    /// Inventory item model with ISyncable implementation
     /// </summary>
-    public class InventoryItem
+    public class InventoryItem : ISyncable
     {
-        // Primary key for the inventory item
         public int Id { get; set; }
 
-        // Unique identifier for barcodes or QR codes
-        [Required]
-        [MaxLength(50)]
+        [Required, MaxLength(50)]
         public string ItemCode { get; set; } = string.Empty;
 
-        // Human-readable name for the item
-        [Required]
-        [MaxLength(200)]
+        [Required, MaxLength(200)]
         public string Name { get; set; } = string.Empty;
 
-        // Optional detailed description
         [MaxLength(1000)]
         public string Description { get; set; } = string.Empty;
 
-        // Current quantity in stock
         public int CurrentQuantity { get; set; } = 0;
-
-        // Minimum quantity before reordering alert
         public int MinimumQuantity { get; set; } = 0;
+        public int MaximumQuantity { get; set; } = 999999;
 
-        // Maximum quantity for storage optimization
-        public int MaximumQuantity { get; set; } = 1000;
-
-        // Unit of measurement
         [MaxLength(20)]
         public string Unit { get; set; } = "pieces";
 
-        // Location using the simple enum approach
-        // This is stored as an integer in the database but used as an enum in code
         public WarehouseLocation Location { get; set; } = WarehouseLocation.MainWarehouse;
 
-        // Category for grouping similar items
         [MaxLength(100)]
         public string Category { get; set; } = string.Empty;
 
-        // Optional supplier information
         [MaxLength(200)]
         public string Supplier { get; set; } = string.Empty;
 
-        // Cost per unit for financial tracking
         public decimal UnitCost { get; set; } = 0;
-
-        // Audit fields - track creation and modification
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime LastModifiedAt { get; set; } = DateTime.UtcNow;
         public string CreatedByUserId { get; set; } = string.Empty;
         public string LastModifiedByUserId { get; set; } = string.Empty;
-
-        // Soft delete flag
         public bool IsActive { get; set; } = true;
 
-        // Navigation property for transaction history
+        // Navigation property
         public List<InventoryTransaction> Transactions { get; set; } = new();
 
-        // Calculated properties for business logic
+        // Calculated properties
         public bool IsLowStock => CurrentQuantity <= MinimumQuantity;
         public decimal TotalValue => CurrentQuantity * UnitCost;
         public string LocationDisplayName => Location.GetDisplayName();
+
+        // Sync properties implementing ISyncable
+        public SyncStatus SyncStatus { get; set; } = SyncStatus.Synced;
+        public DateTime? LastSyncedAt { get; set; }
+        public string? CloudId { get; set; }
+        public string? ETag { get; set; }
+        public string LocalId => Id.ToString();
     }
 
     /// <summary>
-    /// Updated inventory transaction that works with the simplified location system
-    /// This maintains full audit trail while keeping things simple
+    /// Inventory transaction model with ISyncable implementation
     /// </summary>
-    public partial class InventoryTransaction
+    public class InventoryTransaction : ISyncable
     {
-        // Reference to the inventory item that was changed
+        public int Id { get; set; }
         public int InventoryItemId { get; set; }
-
-        // Navigation property to the inventory item
         public InventoryItem InventoryItem { get; set; } = null!;
-
-        // Optional scan session ID for barcode tracking
         public string? ScanSessionId { get; set; }
+        public string MaterialId { get; set; } = string.Empty;
+        public string UserId { get; set; } = string.Empty;
+        public int QuantityChange { get; set; }
+        public string TransactionType { get; set; } = string.Empty;
+        public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+        public string Notes { get; set; } = string.Empty;
+        public User User { get; set; } = null!;
+
+        // Sync properties implementing ISyncable
+        public SyncStatus SyncStatus { get; set; } = SyncStatus.Synced;
+        public DateTime? LastSyncedAt { get; set; }
+        public string? CloudId { get; set; }
+        public string? ETag { get; set; }
+        public string LocalId => Id.ToString();
 
         // Business rule validation
         public bool IsValidQuantityChange(int currentQuantity)
@@ -207,8 +168,7 @@ namespace InventoryManager.Models
     }
 
     /// <summary>
-    /// Data transfer object for displaying inventory items in lists
-    /// This flattens the data for efficient display without complex joins
+    /// Data transfer object for displaying inventory items
     /// </summary>
     public class InventoryItemDto
     {
@@ -227,35 +187,20 @@ namespace InventoryManager.Models
         public decimal TotalValue { get; set; }
         public DateTime LastModifiedAt { get; set; }
         public string LastModifiedByUserName { get; set; } = string.Empty;
-
     }
 
     /// <summary>
     /// Filter criteria for searching inventory
-    /// Now much simpler with enum-based location filtering
     /// </summary>
     public class InventoryFilter
     {
-        // Filter by specific locations using the enum
         public List<WarehouseLocation> Locations { get; set; } = new();
-
-        // Search text for item code, name, or description
         public string SearchText { get; set; } = string.Empty;
-
-        // Filter by category
         public string Category { get; set; } = string.Empty;
-
-        // Show only low stock items
         public bool ShowLowStockOnly { get; set; } = false;
-
-        // Show only active items
         public bool ShowActiveOnly { get; set; } = true;
-
-        // Sorting options
         public InventorySortBy SortBy { get; set; } = InventorySortBy.Name;
         public bool SortDescending { get; set; } = false;
-
-        // Pagination
         public int PageNumber { get; set; } = 1;
         public int PageSize { get; set; } = 50;
     }

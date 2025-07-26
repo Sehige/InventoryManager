@@ -1,41 +1,50 @@
-﻿// Services/DatabaseService.cs - SIMPLIFIED Database Service with Location Enum
-// This version eliminates the complex location relationships and uses simple enums instead
-// Much easier to understand, maintain, and use in practice
+﻿// Services/DatabaseService.cs - Updated with sync support
+// Enhanced database service with sync tables and migrations
 
 using Microsoft.EntityFrameworkCore;
 using InventoryManager.Models;
+using System;
+using System.Threading.Tasks;
 
 namespace InventoryManager.Services
 {
     /// <summary>
-    /// Simplified database service that treats locations as enum values instead of database entities
-    /// This approach is much more straightforward and eliminates complex relationships
-    /// Perfect for warehouse scenarios where locations are predefined and don't change often
+    /// Enhanced database service with synchronization support
     /// </summary>
     public class DatabaseService : DbContext
     {
-        // User management tables (unchanged from your original)
+        // Existing tables
         public DbSet<User> Users { get; set; }
+        public DbSet<InventoryItem> InventoryItems { get; set; }
         public DbSet<InventoryTransaction> InventoryTransactions { get; set; }
 
-        // Simplified inventory management - no location table needed!
-        public DbSet<InventoryItem> InventoryItems { get; set; }
+        // New sync-related tables
+        public DbSet<SyncLog> SyncLogs { get; set; }
+        public DbSet<SyncConflict> SyncConflicts { get; set; }
+        public DbSet<OfflineQueue> OfflineQueues { get; set; }
+        public DbSet<DeviceRegistration> DeviceRegistrations { get; set; }
 
         /// <summary>
-        /// Database connection configuration - same as before
+        /// Database connection configuration
         /// </summary>
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             var dbPath = Path.Combine(FileSystem.AppDataDirectory, "inventory.db");
             optionsBuilder.UseSqlite($"Data Source={dbPath}");
+
+            // Enable detailed logging in debug mode
+#if DEBUG
+            optionsBuilder.EnableSensitiveDataLogging();
+            optionsBuilder.LogTo(message => System.Diagnostics.Debug.WriteLine(message));
+#endif
         }
 
         /// <summary>
-        /// Simplified model configuration - much cleaner without location relationships
+        /// Model configuration with sync support
         /// </summary>
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            // User configuration (unchanged)
+            // User configuration (updated with sync properties)
             modelBuilder.Entity<User>(entity =>
             {
                 entity.HasKey(e => e.Id);
@@ -44,9 +53,14 @@ namespace InventoryManager.Services
                 entity.Property(e => e.FullName).IsRequired().HasMaxLength(100);
                 entity.Property(e => e.Role).IsRequired().HasMaxLength(20);
                 entity.Property(e => e.PasswordHash).IsRequired().HasMaxLength(100);
+
+                // Sync properties
+                entity.Property(e => e.CloudId).HasMaxLength(50);
+                entity.Property(e => e.ETag).HasMaxLength(100);
+                entity.HasIndex(e => e.CloudId);
             });
 
-            // Simplified InventoryItem configuration
+            // InventoryItem configuration (updated with sync properties)
             modelBuilder.Entity<InventoryItem>(entity =>
             {
                 entity.HasKey(e => e.Id);
@@ -64,239 +78,322 @@ namespace InventoryManager.Services
                       .IsUnique()
                       .HasFilter("IsActive = 1");
 
-                // Configure decimal precision for costs
+                // Configure decimal precision
                 entity.Property(e => e.UnitCost).HasPrecision(10, 2);
 
-                // Location is stored as an integer (enum value) - no foreign key needed!
-                entity.Property(e => e.Location)
-                      .HasConversion<int>(); // This converts enum to int for storage
+                // Sync properties
+                entity.Property(e => e.CloudId).HasMaxLength(50);
+                entity.Property(e => e.ETag).HasMaxLength(100);
+                entity.HasIndex(e => e.CloudId);
+                entity.HasIndex(e => e.SyncStatus);
             });
 
-            // Simplified InventoryTransaction configuration
+            // InventoryTransaction configuration (updated with sync properties)
             modelBuilder.Entity<InventoryTransaction>(entity =>
             {
                 entity.HasKey(e => e.Id);
-                entity.Property(e => e.TransactionType).IsRequired();
-                entity.Property(e => e.UserId).IsRequired();
+                entity.Property(e => e.TransactionType).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.Notes).HasMaxLength(500);
+                entity.Property(e => e.ScanSessionId).HasMaxLength(50);
 
-                // Link to users
+                // Relationships
                 entity.HasOne(e => e.User)
                       .WithMany(u => u.Transactions)
                       .HasForeignKey(e => e.UserId)
                       .OnDelete(DeleteBehavior.Restrict);
 
-                // Link to inventory items - much simpler now!
                 entity.HasOne(e => e.InventoryItem)
                       .WithMany(i => i.Transactions)
                       .HasForeignKey(e => e.InventoryItemId)
-                      .OnDelete(DeleteBehavior.Restrict);
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                // Sync properties
+                entity.Property(e => e.CloudId).HasMaxLength(50);
+                entity.Property(e => e.ETag).HasMaxLength(100);
+                entity.HasIndex(e => e.CloudId);
+                entity.HasIndex(e => e.Timestamp);
             });
 
-            base.OnModelCreating(modelBuilder);
+            // SyncLog configuration
+            modelBuilder.Entity<SyncLog>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.OperationType).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.Status).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.ErrorDetails).HasMaxLength(2000);
+                entity.HasIndex(e => e.StartedAt);
+                entity.HasIndex(e => e.Status);
+            });
+
+            // SyncConflict configuration
+            modelBuilder.Entity<SyncConflict>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.EntityType).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.EntityId).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.LocalValue).IsRequired();
+                entity.Property(e => e.RemoteValue).IsRequired();
+                entity.Property(e => e.ResolutionStrategy).HasMaxLength(20);
+                entity.HasIndex(e => new { e.EntityType, e.EntityId });
+                entity.HasIndex(e => e.ResolvedAt);
+            });
+
+            // OfflineQueue configuration
+            modelBuilder.Entity<OfflineQueue>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.EntityType).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.EntityId).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.Operation).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.Payload).IsRequired();
+                entity.Property(e => e.LastError).HasMaxLength(1000);
+                entity.HasIndex(e => e.QueuedAt);
+                entity.HasIndex(e => new { e.EntityType, e.EntityId });
+            });
+
+            // DeviceRegistration configuration
+            modelBuilder.Entity<DeviceRegistration>(entity =>
+            {
+                entity.HasKey(e => e.DeviceId);
+                entity.Property(e => e.DeviceId).HasMaxLength(100);
+                entity.Property(e => e.DeviceName).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.Platform).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.RegisteredByUserId).IsRequired();
+                entity.HasIndex(e => e.RegisteredByUserId);
+            });
+
+            // Seed initial data
+            SeedData(modelBuilder);
         }
 
         /// <summary>
-        /// Simplified initialization - no complex location setup needed
+        /// Initialize database and apply migrations
         /// </summary>
         public async Task InitializeAsync()
         {
             try
             {
-                await Database.EnsureCreatedAsync();
+                System.Diagnostics.Debug.WriteLine("Database initialization starting...");
 
-                // Create default admin user
-                if (!await Users.AnyAsync())
+                var dbPath = Path.Combine(FileSystem.AppDataDirectory, "inventory.db");
+                System.Diagnostics.Debug.WriteLine($"Database path: {dbPath}");
+
+                // Check if this is first run
+                bool isFirstRun = !File.Exists(dbPath);
+                System.Diagnostics.Debug.WriteLine($"Is first run: {isFirstRun}");
+
+                if (isFirstRun)
                 {
-                    await CreateDefaultAdminAsync();
+                    System.Diagnostics.Debug.WriteLine("First run detected - creating new database");
+
+                    // For first run, just create the database with new schema
+                    await Database.EnsureCreatedAsync();
+
+                    // Add default admin user
+                    var adminUser = new User
+                    {
+                        Id = Guid.NewGuid().ToString(),
+                        Username = "admin",
+                        FullName = "System Administrator",
+                        PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin123"),
+                        Role = "Admin",
+                        CreatedAt = DateTime.UtcNow,
+                        LastLoginAt = DateTime.UtcNow,
+                        IsActive = true,
+                        // Set sync properties with defaults
+                        SyncStatus = SyncStatus.Synced,
+                        LastSyncedAt = null,
+                        CloudId = null,
+                        ETag = null
+                    };
+
+                    Users.Add(adminUser);
+                    await SaveChangesAsync();
+
+                    System.Diagnostics.Debug.WriteLine("Default admin user created");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("Existing database found");
+
+                    // For existing database, we need to be more careful
+                    try
+                    {
+                        // Try to open connection
+                        await Database.OpenConnectionAsync();
+                        await Database.CloseConnectionAsync();
+                        System.Diagnostics.Debug.WriteLine("Database connection successful");
+
+                        // TEMPORARILY: Don't do migrations, just work with what we have
+                        // await ApplyManualMigrationsAsync();
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Database error: {ex.Message}");
+
+                        // If there's a problem, offer to reset
+                        System.Diagnostics.Debug.WriteLine("Database appears corrupted - considering reset");
+
+                        // DELETE the corrupted database and start fresh
+                        try
+                        {
+                            File.Delete(dbPath);
+                            System.Diagnostics.Debug.WriteLine("Deleted corrupted database");
+
+                            // Recreate
+                            await Database.EnsureCreatedAsync();
+
+                            // Add default admin
+                            var adminUser = new User
+                            {
+                                Id = Guid.NewGuid().ToString(),
+                                Username = "admin",
+                                FullName = "System Administrator",
+                                PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin123"),
+                                Role = "Admin",
+                                CreatedAt = DateTime.UtcNow,
+                                LastLoginAt = DateTime.UtcNow,
+                                IsActive = true,
+                                SyncStatus = SyncStatus.Synced
+                            };
+
+                            Users.Add(adminUser);
+                            await SaveChangesAsync();
+
+                            System.Diagnostics.Debug.WriteLine("Database recreated successfully");
+                        }
+                        catch (Exception resetEx)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"Failed to reset database: {resetEx.Message}");
+                            throw;
+                        }
+                    }
                 }
 
-                // Create sample inventory items with enum locations
-                if (!await InventoryItems.AnyAsync())
-                {
-                    await CreateSampleInventoryAsync();
-                }
-
-                System.Diagnostics.Debug.WriteLine("Database initialized successfully with simplified location system");
+                System.Diagnostics.Debug.WriteLine("Database initialization completed");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Database initialization error: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"CRITICAL: Database initialization failed: {ex}");
                 throw;
             }
         }
 
         /// <summary>
-        /// Create default admin user (unchanged)
+        /// Apply custom migrations for sync support
         /// </summary>
-        private async Task CreateDefaultAdminAsync()
+        private async Task ApplyCustomMigrationsAsync()
         {
-            var adminUser = new User
+            // Check if sync columns exist and add them if not
+            // This is a simplified approach - in production, use proper migrations
+
+            try
             {
-                Id = Guid.NewGuid().ToString(),
+                // Test if sync columns exist by trying to query them
+                var testUser = await Users.Select(u => new { u.CloudId, u.SyncStatus }).FirstOrDefaultAsync();
+            }
+            catch
+            {
+                // If the query fails, the columns don't exist
+                // In a real app, you'd use proper EF migrations
+                System.Diagnostics.Debug.WriteLine("Sync columns not found - database migration may be needed");
+            }
+        }
+
+        /// <summary>
+        /// Seed initial data including sync configuration
+        /// </summary>
+        private void SeedData(ModelBuilder modelBuilder)
+        {
+            // Create default admin user if not exists
+            var adminId = "default-admin-id";
+            modelBuilder.Entity<User>().HasData(new User
+            {
+                Id = adminId,
                 Username = "admin",
                 FullName = "System Administrator",
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin123"),
                 Role = "Admin",
-                CreatedAt = DateTime.UtcNow,
-                LastLoginAt = DateTime.MinValue,
-                IsActive = true
-            };
+                CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+                LastLoginAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+                IsActive = true,
+                SyncStatus = SyncStatus.Synced,
+                LastSyncedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+            });
+        }
 
-            Users.Add(adminUser);
-            await SaveChangesAsync();
-            System.Diagnostics.Debug.WriteLine("Default admin user created successfully");
+        #region Helper Methods
+
+        /// <summary>
+        /// Get user by username (existing method preserved)
+        /// </summary>
+        public async Task<User?> GetUserByUsernameAsync(string username)
+        {
+            return await Users
+                .FirstOrDefaultAsync(u => u.Username == username && u.IsActive);
         }
 
         /// <summary>
-        /// Create sample inventory with enum-based locations - much simpler!
+        /// Update user last login (existing method preserved)
         /// </summary>
-        private async Task CreateSampleInventoryAsync()
+        public async Task UpdateUserLastLoginAsync(string userId)
         {
-            var adminUser = await Users.FirstAsync(u => u.Username == "admin");
-
-            var sampleItems = new[]
+            var user = await Users.FindAsync(userId);
+            if (user != null)
             {
-                new InventoryItem
+                user.LastLoginAt = DateTime.UtcNow;
+                // Mark as modified for sync
+                if (user.SyncStatus == SyncStatus.Synced)
                 {
-                    ItemCode = "HW001",
-                    Name = "Steel Bolts M8x40mm",
-                    Description = "High-grade stainless steel bolts for construction",
-                    CurrentQuantity = 500,
-                    MinimumQuantity = 100,
-                    MaximumQuantity = 1000,
-                    Unit = "pieces",
-                    Location = WarehouseLocation.MainWarehouse, // Simple enum assignment!
-                    Category = "Hardware",
-                    Supplier = "Steel Supply Co.",
-                    UnitCost = 0.25m,
-                    CreatedAt = DateTime.UtcNow,
-                    LastModifiedAt = DateTime.UtcNow,
-                    CreatedByUserId = adminUser.Id,
-                    LastModifiedByUserId = adminUser.Id,
-                    IsActive = true
-                },
-
-                new InventoryItem
-                {
-                    ItemCode = "CH001",
-                    Name = "Industrial Lubricant",
-                    Description = "High-performance synthetic lubricant for machinery",
-                    CurrentQuantity = 25,
-                    MinimumQuantity = 10,
-                    MaximumQuantity = 50,
-                    Unit = "liters",
-                    Location = WarehouseLocation.ColdStorage,
-                    Category = "Chemicals",
-                    Supplier = "Chemical Solutions Ltd.",
-                    UnitCost = 15.50m,
-                    CreatedAt = DateTime.UtcNow,
-                    LastModifiedAt = DateTime.UtcNow,
-                    CreatedByUserId = adminUser.Id,
-                    LastModifiedByUserId = adminUser.Id,
-                    IsActive = true
-                },
-
-                new InventoryItem
-                {
-                    ItemCode = "SF001",
-                    Name = "Safety Helmets",
-                    Description = "OSHA-compliant safety helmets with chin strap",
-                    CurrentQuantity = 8,
-                    MinimumQuantity = 20, // Low stock for testing
-                    MaximumQuantity = 100,
-                    Unit = "pieces",
-                    Location = WarehouseLocation.SafetyStation,
-                    Category = "Safety Equipment",
-                    Supplier = "Safety First Inc.",
-                    UnitCost = 25.00m,
-                    CreatedAt = DateTime.UtcNow,
-                    LastModifiedAt = DateTime.UtcNow,
-                    CreatedByUserId = adminUser.Id,
-                    LastModifiedByUserId = adminUser.Id,
-                    IsActive = true
-                },
-
-                new InventoryItem
-                {
-                    ItemCode = "TL001",
-                    Name = "Drill Bit Set Professional",
-                    Description = "High-speed steel drill bits 1-10mm with titanium coating",
-                    CurrentQuantity = 12,
-                    MinimumQuantity = 5,
-                    MaximumQuantity = 25,
-                    Unit = "sets",
-                    Location = WarehouseLocation.Workshop,
-                    Category = "Tools",
-                    Supplier = "Tool Masters",
-                    UnitCost = 45.00m,
-                    CreatedAt = DateTime.UtcNow,
-                    LastModifiedAt = DateTime.UtcNow,
-                    CreatedByUserId = adminUser.Id,
-                    LastModifiedByUserId = adminUser.Id,
-                    IsActive = true
-                },
-
-                new InventoryItem
-                {
-                    ItemCode = "PK001",
-                    Name = "Heavy Duty Packing Tape",
-                    Description = "Reinforced packing tape 48mm x 50m for shipping",
-                    CurrentQuantity = 75,
-                    MinimumQuantity = 30,
-                    MaximumQuantity = 200,
-                    Unit = "rolls",
-                    Location = WarehouseLocation.LoadingDock,
-                    Category = "Packing Supplies",
-                    Supplier = "Packaging Pro",
-                    UnitCost = 3.50m,
-                    CreatedAt = DateTime.UtcNow,
-                    LastModifiedAt = DateTime.UtcNow,
-                    CreatedByUserId = adminUser.Id,
-                    LastModifiedByUserId = adminUser.Id,
-                    IsActive = true
-                },
-
-                new InventoryItem
-                {
-                    ItemCode = "OF001",
-                    Name = "Printer Paper A4",
-                    Description = "High-quality 80gsm white paper, 500 sheets per ream",
-                    CurrentQuantity = 15,
-                    MinimumQuantity = 25, // Another low stock item
-                    MaximumQuantity = 100,
-                    Unit = "reams",
-                    Location = WarehouseLocation.OfficeStorage,
-                    Category = "Office Supplies",
-                    Supplier = "Office Direct",
-                    UnitCost = 4.75m,
-                    CreatedAt = DateTime.UtcNow,
-                    LastModifiedAt = DateTime.UtcNow,
-                    CreatedByUserId = adminUser.Id,
-                    LastModifiedByUserId = adminUser.Id,
-                    IsActive = true
+                    user.SyncStatus = SyncStatus.Modified;
                 }
-            };
-
-            InventoryItems.AddRange(sampleItems);
-            await SaveChangesAsync();
-            System.Diagnostics.Debug.WriteLine($"Created {sampleItems.Length} sample inventory items with enum locations");
+                await SaveChangesAsync();
+            }
         }
 
-        // Keep all your existing user management methods unchanged
-        public async Task<List<User>> GetAllUsersAsync()
+        /// <summary>
+        /// Override SaveChangesAsync to handle sync status updates
+        /// </summary>
+        public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {
-            return await Users.Where(u => u.IsActive).OrderBy(u => u.FullName).ToListAsync();
+            // Update sync status for modified entities
+            var entries = ChangeTracker.Entries<ISyncable>()
+                .Where(e => e.State == EntityState.Modified || e.State == EntityState.Added);
+
+            foreach (var entry in entries)
+            {
+                if (entry.State == EntityState.Added && entry.Entity.SyncStatus == SyncStatus.Synced)
+                {
+                    entry.Entity.SyncStatus = SyncStatus.Created;
+                }
+                else if (entry.State == EntityState.Modified && entry.Entity.SyncStatus == SyncStatus.Synced)
+                {
+                    entry.Entity.SyncStatus = SyncStatus.Modified;
+                }
+            }
+
+            return await base.SaveChangesAsync(cancellationToken);
         }
 
-        public async Task<User?> GetUserByUsernameAsync(string username)
-        {
-            return await Users.FirstOrDefaultAsync(u => u.Username == username && u.IsActive);
-        }
+        #endregion
 
+        /// <summary>
+        /// Create a new user in the database
+        /// </summary>
         public async Task<bool> CreateUserAsync(User user)
         {
             try
             {
+                // Check if username already exists
+                var existingUser = await Users
+                    .FirstOrDefaultAsync(u => u.Username == user.Username);
+
+                if (existingUser != null)
+                {
+                    return false; // Username already taken
+                }
+
+                // Add the new user
                 Users.Add(user);
                 await SaveChangesAsync();
                 return true;
@@ -307,102 +404,105 @@ namespace InventoryManager.Services
                 return false;
             }
         }
-
-        public async Task UpdateUserLastLoginAsync(string userId)
+        /// <summary>
+        /// FOR DEVELOPMENT ONLY: Delete and recreate the database
+        /// </summary>
+        public async Task ResetDatabaseAsync()
         {
-            var user = await Users.FindAsync(userId);
-            if (user != null)
+            try
             {
-                user.LastLoginAt = DateTime.UtcNow;
+                return;
+                // Delete the existing database
+                await Database.EnsureDeletedAsync();
+
+                // Recreate with new schema
+                await Database.EnsureCreatedAsync();
+
+                // Add default admin user
+                var adminUser = new User
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    Username = "admin",
+                    FullName = "System Administrator",
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin123"),
+                    Role = "Admin",
+                    CreatedAt = DateTime.UtcNow,
+                    LastLoginAt = DateTime.UtcNow,
+                    IsActive = true,
+                    SyncStatus = SyncStatus.Synced,
+                    LastSyncedAt = DateTime.UtcNow
+                };
+
+                Users.Add(adminUser);
                 await SaveChangesAsync();
+
+                System.Diagnostics.Debug.WriteLine("Database reset completed with default admin user");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Database reset failed: {ex.Message}");
+                throw;
             }
         }
 
-        public async Task<Dictionary<string, object>> GetUserStatsAsync()
+        /// <summary>
+        /// Get all users from the database
+        /// </summary>
+        public async Task<List<User>> GetAllUsersAsync()
         {
-            var stats = new Dictionary<string, object>();
-
-            stats["TotalUsers"] = await Users.CountAsync(u => u.IsActive);
-
-            var roleStats = await Users
-                .Where(u => u.IsActive)
-                .GroupBy(u => u.Role)
-                .Select(g => new { Role = g.Key, Count = g.Count() })
-                .ToListAsync();
-
-            stats["UsersByRole"] = roleStats;
-
-            var thirtyDaysAgo = DateTime.UtcNow.AddDays(-30);
-            stats["RecentlyActiveUsers"] = await Users
-                .CountAsync(u => u.IsActive && u.LastLoginAt > thirtyDaysAgo);
-
-            return stats;
+            try
+            {
+                return await Users
+                    .Where(u => u.IsActive)
+                    .OrderBy(u => u.FullName)
+                    .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error getting all users: {ex.Message}");
+                return new List<User>();
+            }
         }
 
         /// <summary>
-        /// Simplified inventory statistics - much easier to calculate without joins!
+        /// Get user statistics for dashboard
         /// </summary>
-        public async Task<Dictionary<string, object>> GetInventoryStatsAsync()
+        public async Task<Dictionary<string, object>> GetUserStatsAsync()
         {
-            var stats = new Dictionary<string, object>();
-
             try
             {
-                stats["TotalItems"] = await InventoryItems.CountAsync(i => i.IsActive);
-                stats["LowStockItems"] = await InventoryItems.CountAsync(i => i.IsActive && i.CurrentQuantity <= i.MinimumQuantity);
-                stats["TotalInventoryValue"] = await InventoryItems
-                    .Where(i => i.IsActive)
-                    .SumAsync(i => i.CurrentQuantity * i.UnitCost);
+                var stats = new Dictionary<string, object>();
 
-                // Category breakdown - simple and fast
-                var categoryStats = await InventoryItems
-                    .Where(i => i.IsActive)
-                    .GroupBy(i => i.Category)
-                    .Select(g => new { Category = g.Key, Count = g.Count(), TotalValue = g.Sum(i => i.CurrentQuantity * i.UnitCost) })
+                // Total users
+                stats["TotalUsers"] = await Users.CountAsync(u => u.IsActive);
+
+                // Users by role
+                stats["AdminCount"] = await Users.CountAsync(u => u.IsActive && u.Role == "Admin");
+                stats["ManagerCount"] = await Users.CountAsync(u => u.IsActive && u.Role == "Manager");
+                stats["OperatorCount"] = await Users.CountAsync(u => u.IsActive && u.Role == "Operator");
+
+                // Recent activity
+                var recentLoginDate = DateTime.UtcNow.AddDays(-7);
+                stats["RecentlyActiveUsers"] = await Users
+                    .CountAsync(u => u.IsActive && u.LastLoginAt >= recentLoginDate);
+
+                // Get recently created users
+                var recentUsers = await Users
+                    .Where(u => u.IsActive)
+                    .OrderByDescending(u => u.CreatedAt)
+                    .Take(5)
+                    .Select(u => new { u.FullName, u.Username, u.CreatedAt })
                     .ToListAsync();
 
-                stats["Categories"] = categoryStats;
-
-                // Location breakdown using enum - no joins needed!
-                var locationStats = await InventoryItems
-                    .Where(i => i.IsActive)
-                    .GroupBy(i => i.Location)
-                    .Select(g => new { Location = g.Key.GetDisplayName(), Count = g.Count() })
-                    .ToListAsync();
-
-                stats["LocationBreakdown"] = locationStats;
+                stats["RecentUsers"] = recentUsers;
 
                 return stats;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error getting inventory stats: {ex.Message}");
-                return stats;
+                System.Diagnostics.Debug.WriteLine($"Error getting user stats: {ex.Message}");
+                return new Dictionary<string, object>();
             }
-        }
-
-        /// <summary>
-        /// Create a test operator - now much simpler since location access is handled by role
-        /// </summary>
-        public async Task<User> CreateTestOperatorAsync()
-        {
-            var timestamp = DateTime.Now.ToString("MMddHHmmss");
-            var testOperator = new User
-            {
-                Id = Guid.NewGuid().ToString(),
-                Username = $"operator{timestamp}",
-                FullName = $"Test Operator {timestamp}",
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword("test123"),
-                Role = "Operator", // Role determines location access automatically
-                CreatedAt = DateTime.UtcNow,
-                IsActive = true
-            };
-
-            Users.Add(testOperator);
-            await SaveChangesAsync();
-
-            System.Diagnostics.Debug.WriteLine($"Test operator created: {testOperator.Username} - location access determined by role");
-            return testOperator;
         }
     }
 }
