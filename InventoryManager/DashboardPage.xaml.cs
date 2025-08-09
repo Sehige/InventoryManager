@@ -56,6 +56,7 @@ public partial class DashboardPage : ContentPage
         // Update labels - use the x:Name from XAML
         WelcomeLabel.Text = L.Get("WelcomeUser", _userName);
         RefreshUsersBtn.Text = $"🔄 {L.Get("RefreshUserList")}";
+        ResetDbBtn.Text = $"🔄 {L.Get("ResetDB", "Reset DB")}"; // Add this line
         TestDatabaseBtn.Text = $"🔧 {L.Get("TestDatabase")}";
         CreateTestUserBtn.Text = $"👤 {L.Get("CreateTestUser")}";
         ViewAppInfoBtn.Text = $"ℹ️ {L.Get("AppInfo")}";
@@ -63,9 +64,6 @@ public partial class DashboardPage : ContentPage
 
         // Update any other text elements
         CurrentTimeLabel.Text = L.Get("CurrentTime", DateTime.Now.ToString());
-
-        // If you have DisplayAlert calls, update them too:
-        // await DisplayAlert(L.Get("Error"), L.Get("ErrorMessage"), L.Get("OK"));
     }
 
     private void OnLanguageChanged(object? sender, string newLanguage)
@@ -233,33 +231,69 @@ public partial class DashboardPage : ContentPage
     {
         try
         {
-            var stats = await _databaseService.GetUserStatsAsync();
+            var stats = "📊 System Overview:\n\n";
 
-            var statsText = $"\n📊 System Statistics:\n";
-            statsText += $"• Total Active Users: {stats["TotalUsers"]}\n";
-            statsText += $"• Recently Active: {stats["RecentlyActiveUsers"]}\n";
+            // User statistics
+            var userStats = await _databaseService.GetUserStatsAsync();
+            stats += $"👥 Total Users: {userStats["TotalUsers"]}\n";
+            stats += $"   • Admins: {userStats["AdminCount"]}\n";
+            stats += $"   • Managers: {userStats["ManagerCount"]}\n";
+            stats += $"   • Operators: {userStats["OperatorCount"]}\n\n";
 
-            if (stats["UsersByRole"] is List<object> roleStats)
+            // Inventory statistics
+            try
             {
-                statsText += "• Users by Role:\n";
-                foreach (var roleStat in roleStats)
+                var inventoryStats = await _inventoryService.GetInventoryStatsAsync();
+
+                // Total items
+                var totalItems = inventoryStats.ContainsKey("TotalItems") ? inventoryStats["TotalItems"] : 0;
+                stats += $"📦 Total Inventory Items: {totalItems}\n";
+
+                // Items by location
+                if (inventoryStats.ContainsKey("ItemsByLocation") && inventoryStats["ItemsByLocation"] is Dictionary<string, int> locationStats)
                 {
-                    statsText += $"  - {roleStat}\n";
+                    stats += "📍 Items by Location:\n";
+                    foreach (var location in locationStats)
+                    {
+                        stats += $"   • {location.Key}: {location.Value} items\n";
+                    }
                 }
+
+                // Low stock alert
+                var lowStockCount = inventoryStats.ContainsKey("LowStockCount") ? inventoryStats["LowStockCount"] : 0;
+                if (Convert.ToInt32(lowStockCount) > 0)
+                {
+                    stats += $"\n⚠️ Low Stock Alert: {lowStockCount} items below minimum!\n";
+                }
+
+                // Total inventory value
+                if (inventoryStats.ContainsKey("TotalValue") && inventoryStats["TotalValue"] is decimal totalValue)
+                {
+                    stats += $"\n💰 Total Inventory Value: ${totalValue:N2}\n";
+                }
+
+                // Recent transactions
+                var recentTransactionCount = inventoryStats.ContainsKey("RecentTransactionCount") ? inventoryStats["RecentTransactionCount"] : 0;
+                stats += $"\n📋 Transactions (Last 7 days): {recentTransactionCount}\n";
+            }
+            catch (Exception ex)
+            {
+                stats += $"\n⚠️ Could not load inventory stats: {ex.Message}\n";
             }
 
-            statsText += $"• App Version: {AppInfo.VersionString}\n";
-            statsText += $"• Platform: {DeviceInfo.Platform}\n";
-            statsText += $"• Device Model: {DeviceInfo.Model}";
+            // Database info
+            var dbPath = Path.Combine(FileSystem.AppDataDirectory, "inventory.db");
+            if (File.Exists(dbPath))
+            {
+                var fileInfo = new FileInfo(dbPath);
+                stats += $"\n💾 Database Size: {fileInfo.Length / 1024} KB";
+            }
 
-            // Append to existing system stats (which now includes inventory stats)
-            SystemStatsLabel.Text += statsText;
-
-            AddDebugInfo("System statistics loaded successfully");
+            SystemStatsLabel.Text = stats;
         }
         catch (Exception ex)
         {
-            AddDebugInfo($"Error loading system stats: {ex.Message}");
+            SystemStatsLabel.Text = $"Error loading statistics: {ex.Message}";
         }
     }
 
@@ -536,6 +570,79 @@ public partial class DashboardPage : ContentPage
             await DisplayAlert(L.Get("Error"),
                 $"{L.Get("FailedToOpenScanner")}: {ex.Message}",
                 L.Get("OK"));
+        }
+    }
+
+    /// <summary>
+    /// Reset the inventory database with test data
+    /// WARNING: This will delete all existing inventory data!
+    /// </summary>
+    private async void OnResetDbClicked(object sender, EventArgs e)
+    {
+        // First, show a warning dialog
+        var confirm = await DisplayAlert(
+            "Reset Database",
+            "⚠️ WARNING: This will DELETE all inventory items and transactions, then create new test data.\n\nAre you sure you want to continue?",
+            "Yes, Reset",
+            "Cancel");
+
+        if (!confirm)
+            return;
+
+        // Double confirmation for safety
+        var doubleConfirm = await DisplayAlert(
+            "Confirm Reset",
+            "This action cannot be undone. All inventory data will be lost.\n\nAre you REALLY sure?",
+            "Yes, I'm Sure",
+            "Cancel");
+
+        if (!doubleConfirm)
+            return;
+
+        // Disable the button and show progress
+        ResetDbBtn.IsEnabled = false;
+        ResetDbBtn.Text = "🔄 Resetting...";
+
+        try
+        {
+            AddDebugInfo("Starting inventory database reset...");
+
+            // Call the reset method
+            var success = await _databaseService.ResetInventoryDataAsync();
+
+            if (success)
+            {
+                AddDebugInfo("✅ Inventory database reset successfully!");
+
+                // Update the dashboard stats to reflect the new data
+                await LoadSystemStats();
+
+                await DisplayAlert(
+                    "Reset Complete",
+                    "✅ Inventory database has been reset with test data.\n\n" +
+                    "• 11 test inventory items created\n" +
+                    "• 3 sample transactions added\n" +
+                    "• Various categories and locations\n" +
+                    "• Some items are low on stock for testing\n\n" +
+                    "Default login: admin / admin123",
+                    "OK");
+            }
+            else
+            {
+                AddDebugInfo("❌ Inventory database reset failed!");
+                await DisplayAlert("Error", "Failed to reset inventory database. Check debug output for details.", "OK");
+            }
+        }
+        catch (Exception ex)
+        {
+            AddDebugInfo($"❌ Error during reset: {ex.Message}");
+            await DisplayAlert("Error", $"An error occurred during reset:\n{ex.Message}", "OK");
+        }
+        finally
+        {
+            // Re-enable the button
+            ResetDbBtn.IsEnabled = true;
+            ResetDbBtn.Text = "🔄 Reset DB";
         }
     }
 }

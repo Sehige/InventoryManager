@@ -504,5 +504,368 @@ namespace InventoryManager.Services
                 return new Dictionary<string, object>();
             }
         }
+
+        /// <summary>
+        /// Reset inventory data with test items for debugging
+        /// </summary>
+        public async Task<bool> ResetInventoryDataAsync()
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine("Starting inventory reset...");
+
+                // 1. Delete all existing inventory transactions
+                var allTransactions = await InventoryTransactions.ToListAsync();
+                InventoryTransactions.RemoveRange(allTransactions);
+                await SaveChangesAsync();
+                System.Diagnostics.Debug.WriteLine($"Deleted {allTransactions.Count} transactions");
+
+                // 2. Delete all existing inventory items
+                var allItems = await InventoryItems.ToListAsync();
+                InventoryItems.RemoveRange(allItems);
+                await SaveChangesAsync();
+                System.Diagnostics.Debug.WriteLine($"Deleted {allItems.Count} inventory items");
+
+                // 3. Get admin user for audit fields
+                var adminUser = await Users.FirstOrDefaultAsync(u => u.Role == "Admin");
+                if (adminUser == null)
+                {
+                    System.Diagnostics.Debug.WriteLine("No admin user found!");
+                    return false;
+                }
+
+                // 4. Create test inventory items
+                var testItems = new List<InventoryItem>
+        {
+            // Office Supplies
+            new InventoryItem
+            {
+                ItemCode = "OFF-001",
+                Name = "A4 Paper (500 sheets)",
+                Description = "Standard white A4 paper for printing",
+                CurrentQuantity = 50,
+                MinimumQuantity = 10,
+                MaximumQuantity = 200,
+                Unit = "pack",
+                Location = WarehouseLocation.OfficeStorage,
+                Category = "Office Supplies",
+                Supplier = "Office Depot",
+                UnitCost = 5.99m,
+                CreatedAt = DateTime.UtcNow,
+                LastModifiedAt = DateTime.UtcNow,
+                CreatedByUserId = adminUser.Id,
+                LastModifiedByUserId = adminUser.Id,
+                IsActive = true,
+                SyncStatus = SyncStatus.Synced
+            },
+            new InventoryItem
+            {
+                ItemCode = "OFF-002",
+                Name = "Blue Ballpoint Pens",
+                Description = "Box of 50 blue ballpoint pens",
+                CurrentQuantity = 8,
+                MinimumQuantity = 5,
+                MaximumQuantity = 50,
+                Unit = "box",
+                Location = WarehouseLocation.OfficeStorage,
+                Category = "Office Supplies",
+                Supplier = "Staples",
+                UnitCost = 12.50m,
+                CreatedAt = DateTime.UtcNow,
+                LastModifiedAt = DateTime.UtcNow,
+                CreatedByUserId = adminUser.Id,
+                LastModifiedByUserId = adminUser.Id,
+                IsActive = true,
+                SyncStatus = SyncStatus.Synced
+            },
+            
+            // Electronics
+            new InventoryItem
+            {
+                ItemCode = "ELEC-001",
+                Name = "USB-C Cable (1m)",
+                Description = "High-speed USB-C charging and data cable",
+                CurrentQuantity = 25,
+                MinimumQuantity = 10,
+                MaximumQuantity = 100,
+                Unit = "pieces",
+                Location = WarehouseLocation.MainWarehouse,
+                Category = "Electronics",
+                Supplier = "TechSupply Co",
+                UnitCost = 8.99m,
+                CreatedAt = DateTime.UtcNow,
+                LastModifiedAt = DateTime.UtcNow,
+                CreatedByUserId = adminUser.Id,
+                LastModifiedByUserId = adminUser.Id,
+                IsActive = true,
+                SyncStatus = SyncStatus.Synced
+            },
+            new InventoryItem
+            {
+                ItemCode = "ELEC-002",
+                Name = "Wireless Mouse",
+                Description = "Ergonomic wireless mouse with USB receiver",
+                CurrentQuantity = 3, // Low stock!
+                MinimumQuantity = 5,
+                MaximumQuantity = 30,
+                Unit = "pieces",
+                Location = WarehouseLocation.MainWarehouse,
+                Category = "Electronics",
+                Supplier = "Logitech",
+                UnitCost = 24.99m,
+                CreatedAt = DateTime.UtcNow,
+                LastModifiedAt = DateTime.UtcNow,
+                CreatedByUserId = adminUser.Id,
+                LastModifiedByUserId = adminUser.Id,
+                IsActive = true,
+                SyncStatus = SyncStatus.Synced
+            },
+            
+            // Tools & Equipment
+            new InventoryItem
+            {
+                ItemCode = "TOOL-001",
+                Name = "Cordless Drill",
+                Description = "18V cordless drill with battery and charger",
+                CurrentQuantity = 5,
+                MinimumQuantity = 2,
+                MaximumQuantity = 10,
+                Unit = "pieces",
+                Location = WarehouseLocation.Workshop,
+                Category = "Tools",
+                Supplier = "DeWalt",
+                UnitCost = 89.99m,
+                CreatedAt = DateTime.UtcNow,
+                LastModifiedAt = DateTime.UtcNow,
+                CreatedByUserId = adminUser.Id,
+                LastModifiedByUserId = adminUser.Id,
+                IsActive = true,
+                SyncStatus = SyncStatus.Synced
+            },
+            new InventoryItem
+            {
+                ItemCode = "TOOL-002",
+                Name = "Safety Helmets",
+                Description = "ANSI approved safety helmets - Yellow",
+                CurrentQuantity = 12,
+                MinimumQuantity = 10,
+                MaximumQuantity = 50,
+                Unit = "pieces",
+                Location = WarehouseLocation.Workshop,
+                Category = "Safety Equipment",
+                Supplier = "SafetyFirst Inc",
+                UnitCost = 15.99m,
+                CreatedAt = DateTime.UtcNow,
+                LastModifiedAt = DateTime.UtcNow,
+                CreatedByUserId = adminUser.Id,
+                LastModifiedByUserId = adminUser.Id,
+                IsActive = true,
+                SyncStatus = SyncStatus.Synced
+            },
+            
+            // Cleaning Supplies
+            new InventoryItem
+            {
+                ItemCode = "CLEAN-001",
+                Name = "Industrial Floor Cleaner",
+                Description = "5L container of industrial strength floor cleaner",
+                CurrentQuantity = 8,
+                MinimumQuantity = 5,
+                MaximumQuantity = 20,
+                Unit = "container",
+                Location = WarehouseLocation.LoadingDock,
+                Category = "Cleaning Supplies",
+                Supplier = "CleanPro Solutions",
+                UnitCost = 22.50m,
+                CreatedAt = DateTime.UtcNow,
+                LastModifiedAt = DateTime.UtcNow,
+                CreatedByUserId = adminUser.Id,
+                LastModifiedByUserId = adminUser.Id,
+                IsActive = true,
+                SyncStatus = SyncStatus.Synced
+            },
+            
+            // Food Items (for cafeteria)
+            new InventoryItem
+            {
+                ItemCode = "FOOD-001",
+                Name = "Coffee Beans (1kg)",
+                Description = "Premium arabica coffee beans",
+                CurrentQuantity = 15,
+                MinimumQuantity = 5,
+                MaximumQuantity = 30,
+                Unit = "bag",
+                Location = WarehouseLocation.ColdStorage,
+                Category = "Food & Beverage",
+                Supplier = "Coffee Wholesale Ltd",
+                UnitCost = 18.99m,
+                CreatedAt = DateTime.UtcNow,
+                LastModifiedAt = DateTime.UtcNow,
+                CreatedByUserId = adminUser.Id,
+                LastModifiedByUserId = adminUser.Id,
+                IsActive = true,
+                SyncStatus = SyncStatus.Synced
+            },
+            
+            // Medical Supplies
+            new InventoryItem
+            {
+                ItemCode = "MED-001",
+                Name = "First Aid Kit",
+                Description = "Complete workplace first aid kit - 50 person",
+                CurrentQuantity = 3,
+                MinimumQuantity = 2,
+                MaximumQuantity = 10,
+                Unit = "kit",
+                Location = WarehouseLocation.SecureVault,
+                Category = "Medical Supplies",
+                Supplier = "MedSupply Direct",
+                UnitCost = 45.00m,
+                CreatedAt = DateTime.UtcNow,
+                LastModifiedAt = DateTime.UtcNow,
+                CreatedByUserId = adminUser.Id,
+                LastModifiedByUserId = adminUser.Id,
+                IsActive = true,
+                SyncStatus = SyncStatus.Synced
+            },
+            
+            // Packaging Materials
+            new InventoryItem
+            {
+                ItemCode = "PACK-001",
+                Name = "Bubble Wrap Roll",
+                Description = "Large bubble wrap roll - 100m x 1m",
+                CurrentQuantity = 4,
+                MinimumQuantity = 2,
+                MaximumQuantity = 10,
+                Unit = "roll",
+                Location = WarehouseLocation.MainWarehouse,
+                Category = "Packaging",
+                Supplier = "PackRight Co",
+                UnitCost = 35.99m,
+                CreatedAt = DateTime.UtcNow,
+                LastModifiedAt = DateTime.UtcNow,
+                CreatedByUserId = adminUser.Id,
+                LastModifiedByUserId = adminUser.Id,
+                IsActive = true,
+                SyncStatus = SyncStatus.Synced
+            },
+            new InventoryItem
+            {
+                ItemCode = "PACK-002",
+                Name = "Shipping Boxes - Medium",
+                Description = "Medium cardboard boxes (40x30x30cm)",
+                CurrentQuantity = 150,
+                MinimumQuantity = 50,
+                MaximumQuantity = 500,
+                Unit = "pieces",
+                Location = WarehouseLocation.MainWarehouse,
+                Category = "Packaging",
+                Supplier = "BoxMart",
+                UnitCost = 1.25m,
+                CreatedAt = DateTime.UtcNow,
+                LastModifiedAt = DateTime.UtcNow,
+                CreatedByUserId = adminUser.Id,
+                LastModifiedByUserId = adminUser.Id,
+                IsActive = true,
+                SyncStatus = SyncStatus.Synced
+            }
+        };
+
+                // Add all test items
+                InventoryItems.AddRange(testItems);
+                await SaveChangesAsync();
+                System.Diagnostics.Debug.WriteLine($"Added {testItems.Count} test inventory items");
+
+                // 5. Create some sample transactions for history
+                var sampleTransactions = new List<InventoryTransaction>
+        {
+            // Some usage transactions
+            new InventoryTransaction
+            {
+                InventoryItemId = testItems[0].Id,
+                MaterialId = testItems[0].ItemCode,
+                UserId = adminUser.Id,
+                QuantityChange = -5,
+                TransactionType = "Usage",
+                Timestamp = DateTime.UtcNow.AddDays(-3),
+                Notes = "Used for quarterly reports",
+                SyncStatus = SyncStatus.Synced
+            },
+            new InventoryTransaction
+            {
+                InventoryItemId = testItems[3].Id,
+                MaterialId = testItems[3].ItemCode,
+                UserId = adminUser.Id,
+                QuantityChange = -2,
+                TransactionType = "Usage",
+                Timestamp = DateTime.UtcNow.AddDays(-1),
+                Notes = "Issued to IT department",
+                SyncStatus = SyncStatus.Synced
+            },
+            // Some restock transactions
+            new InventoryTransaction
+            {
+                InventoryItemId = testItems[1].Id,
+                MaterialId = testItems[1].ItemCode,
+                UserId = adminUser.Id,
+                QuantityChange = 10,
+                TransactionType = "Restock",
+                Timestamp = DateTime.UtcNow.AddDays(-5),
+                Notes = "Monthly restock order",
+                SyncStatus = SyncStatus.Synced
+            }
+        };
+
+                InventoryTransactions.AddRange(sampleTransactions);
+                await SaveChangesAsync();
+                System.Diagnostics.Debug.WriteLine($"Added {sampleTransactions.Count} sample transactions");
+
+                System.Diagnostics.Debug.WriteLine("Inventory reset completed successfully!");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error resetting inventory: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Create a test operator user for testing purposes
+        /// </summary>
+        public async Task<User> CreateTestOperatorAsync()
+        {
+            // Generate a unique username with timestamp
+            var timestamp = DateTime.Now.ToString("HHmmss");
+            var testUser = new User
+            {
+                Id = Guid.NewGuid().ToString(),
+                Username = $"test_operator_{timestamp}",
+                FullName = $"Test Operator {timestamp}",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("test123"),
+                Role = "Operator",
+                CreatedAt = DateTime.UtcNow,
+                LastLoginAt = DateTime.UtcNow,
+                IsActive = true,
+                SyncStatus = SyncStatus.Synced,
+                LastSyncedAt = null,
+                CloudId = null,
+                ETag = null
+            };
+
+            // Check if username already exists (shouldn't happen with timestamp)
+            var existing = await Users.FirstOrDefaultAsync(u => u.Username == testUser.Username);
+            if (existing != null)
+            {
+                throw new InvalidOperationException("Test user already exists");
+            }
+
+            Users.Add(testUser);
+            await SaveChangesAsync();
+
+            System.Diagnostics.Debug.WriteLine($"Created test operator: {testUser.Username}");
+            return testUser;
+        }
     }
 }

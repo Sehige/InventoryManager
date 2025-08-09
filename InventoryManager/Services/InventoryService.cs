@@ -284,52 +284,81 @@ namespace InventoryManager.Services
                 // Get accessible locations for this user
                 var accessibleLocations = WarehouseLocationHelper.GetAccessibleLocations(currentUser.Role);
 
-                // Filter items by accessible locations - simple enum comparison
-                var accessibleItems = _databaseService.InventoryItems
-                    .Where(i => i.IsActive && accessibleLocations.Contains(i.Location));
+                // Total items count (only active items in accessible locations)
+                var totalItems = await _databaseService.InventoryItems
+                    .Where(i => i.IsActive && accessibleLocations.Contains(i.Location))
+                    .CountAsync();
+                stats["TotalItems"] = totalItems;
 
-                // Calculate statistics - much faster without joins
-                stats["TotalItems"] = await accessibleItems.CountAsync();
-                stats["AccessibleLocations"] = accessibleLocations.Count;
-                stats["LowStockItems"] = await accessibleItems.CountAsync(i => i.CurrentQuantity <= i.MinimumQuantity);
-                stats["TotalValue"] = await accessibleItems.SumAsync(i => i.CurrentQuantity * i.UnitCost);
-
-                if (await accessibleItems.AnyAsync())
-                {
-                    stats["AverageStockLevel"] = await accessibleItems.AverageAsync(i => (double)i.CurrentQuantity);
-                }
-                else
-                {
-                    stats["AverageStockLevel"] = 0.0;
-                }
-
-                // Category breakdown for accessible items
-                var categoryStats = await accessibleItems
-                    .GroupBy(i => i.Category)
-                    .Select(g => new { Category = g.Key, Count = g.Count(), TotalValue = g.Sum(i => i.CurrentQuantity * i.UnitCost) })
-                    .ToListAsync();
-
-                stats["CategoryBreakdown"] = categoryStats;
-
-                // Location breakdown using enum display names - super clean!
-                var locationStats = await accessibleItems
+                // Items by location
+                var itemsByLocation = await _databaseService.InventoryItems
+                    .Where(i => i.IsActive && accessibleLocations.Contains(i.Location))
                     .GroupBy(i => i.Location)
-                    .Select(g => new
+                    .Select(g => new { Location = g.Key, Count = g.Count() })
+                    .ToDictionaryAsync(x => x.Location.GetDisplayName(), x => x.Count);
+                stats["ItemsByLocation"] = itemsByLocation;
+
+                // Low stock count
+                var lowStockCount = await _databaseService.InventoryItems
+                    .Where(i => i.IsActive &&
+                               accessibleLocations.Contains(i.Location) &&
+                               i.CurrentQuantity <= i.MinimumQuantity)
+                    .CountAsync();
+                stats["LowStockCount"] = lowStockCount;
+
+                // Total inventory value
+                var totalValue = await _databaseService.InventoryItems
+                    .Where(i => i.IsActive && accessibleLocations.Contains(i.Location))
+                    .SumAsync(i => i.CurrentQuantity * i.UnitCost);
+                stats["TotalValue"] = totalValue;
+
+                // Categories count
+                var categoriesCount = await _databaseService.InventoryItems
+                    .Where(i => i.IsActive && accessibleLocations.Contains(i.Location))
+                    .Select(i => i.Category)
+                    .Distinct()
+                    .CountAsync();
+                stats["CategoriesCount"] = categoriesCount;
+
+                // Recent transactions count (last 7 days)
+                var sevenDaysAgo = DateTime.UtcNow.AddDays(-7);
+                var recentTransactionCount = await _databaseService.InventoryTransactions
+                    .Where(t => t.Timestamp >= sevenDaysAgo)
+                    .CountAsync();
+                stats["RecentTransactionCount"] = recentTransactionCount;
+
+                // Items needing restock soon (within 20% of minimum)
+                var needsRestockSoon = await _databaseService.InventoryItems
+                    .Where(i => i.IsActive &&
+                               accessibleLocations.Contains(i.Location) &&
+                               i.CurrentQuantity > i.MinimumQuantity &&
+                               i.CurrentQuantity <= (i.MinimumQuantity * 1.2))
+                    .CountAsync();
+                stats["NeedsRestockSoon"] = needsRestockSoon;
+
+                // Most valuable items (top 5)
+                var mostValuableItems = await _databaseService.InventoryItems
+                    .Where(i => i.IsActive && accessibleLocations.Contains(i.Location))
+                    .OrderByDescending(i => i.CurrentQuantity * i.UnitCost)
+                    .Take(5)
+                    .Select(i => new
                     {
-                        Location = g.Key.GetDisplayName(),
-                        Count = g.Count(),
-                        TotalValue = g.Sum(i => i.CurrentQuantity * i.UnitCost)
+                        i.Name,
+                        i.ItemCode,
+                        Value = i.CurrentQuantity * i.UnitCost
                     })
                     .ToListAsync();
-
-                stats["LocationBreakdown"] = locationStats;
+                stats["MostValuableItems"] = mostValuableItems;
 
                 return stats;
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error getting inventory stats: {ex.Message}");
-                return new Dictionary<string, object>();
+                return new Dictionary<string, object>
+                {
+                    ["Error"] = ex.Message
+                };
             }
         }
 

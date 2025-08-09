@@ -94,6 +94,14 @@ namespace InventoryManager.Services
                 ["CreateTestUser"] = "Create Test User",
                 ["AppInfo"] = "App Info",
                 ["RefreshUserList"] = "Refresh User List",
+                // Dashboard Reser Inventory
+                ["ReserDB"] = "Reset Database",
+                ["ResetDBWarning"] = "⚠️ WARNING: This will DELETE all inventory items and transactions, then create new test data.\n\nAre you sure you want to continue?",
+                ["ReserDBSuccess"] = "✅ Inventory database has been reset with test data.\n\n• 11 test inventory items created\n• 3 sample transactions added\n• Various categories and locations\n• Some items are low on stock for testing\n\nDefault login: admin / admin123",
+                ["ResetDBInProgress"] = "Resetting...",
+                ["ReserDBConfirm"] = "This action cannot be undone. All inventory data will be lost.\n\nAre you REALLY sure?",
+                ["ResetDBComplete"] = "Reset Complete",
+                ["ResetDBFailed"] = "Failed to reset inventory database. Check debug output for details.",
 
                 // Inventory
                 ["Inventory"] = "Inventory",
