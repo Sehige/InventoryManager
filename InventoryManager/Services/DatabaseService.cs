@@ -24,6 +24,10 @@ namespace InventoryManager.Services
         public DbSet<OfflineQueue> OfflineQueues { get; set; }
         public DbSet<DeviceRegistration> DeviceRegistrations { get; set; }
 
+        // New order management tables
+        public DbSet<Order> Orders { get; set; }
+        public DbSet<OrderItem> OrderItems { get; set; }
+
         /// <summary>
         /// Database connection configuration
         /// </summary>
@@ -160,6 +164,64 @@ namespace InventoryManager.Services
                 entity.Property(e => e.Platform).IsRequired().HasMaxLength(20);
                 entity.Property(e => e.RegisteredByUserId).IsRequired();
                 entity.HasIndex(e => e.RegisteredByUserId);
+            });
+
+            // Order configuration
+            modelBuilder.Entity<Order>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.OrderName).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.CreatedByUserId).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.Notes).HasMaxLength(500);
+
+                // Sync properties
+                entity.Property(e => e.CloudId).HasMaxLength(50);
+                entity.Property(e => e.ETag).HasMaxLength(100);
+                entity.HasIndex(e => e.CloudId);
+
+                // Indexes for performance
+                entity.HasIndex(e => e.CreatedDate);
+                entity.HasIndex(e => e.Status);
+                entity.HasIndex(e => e.CreatedByUserId);
+
+                // Relationship with User
+                entity.HasOne(e => e.CreatedByUser)
+                      .WithMany()
+                      .HasForeignKey(e => e.CreatedByUserId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                // Relationship with OrderItems
+                entity.HasMany(e => e.OrderItems)
+                      .WithOne(e => e.Order)
+                      .HasForeignKey(e => e.OrderId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // OrderItem configuration
+            modelBuilder.Entity<OrderItem>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Quantity).IsRequired();
+
+                // Sync properties
+                entity.Property(e => e.CloudId).HasMaxLength(50);
+                entity.Property(e => e.ETag).HasMaxLength(100);
+                entity.HasIndex(e => e.CloudId);
+
+                // Indexes for performance
+                entity.HasIndex(e => e.OrderId);
+                entity.HasIndex(e => e.InventoryItemId);
+
+                // Composite index for order + inventory item (prevent duplicates)
+                entity.HasIndex(e => new { e.OrderId, e.InventoryItemId }).IsUnique();
+
+                // Relationship with Order (already configured above)
+
+                // Relationship with InventoryItem
+                entity.HasOne(e => e.InventoryItem)
+                      .WithMany()
+                      .HasForeignKey(e => e.InventoryItemId)
+                      .OnDelete(DeleteBehavior.Restrict);
             });
 
             // Seed initial data

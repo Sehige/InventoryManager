@@ -1,0 +1,324 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- OrdersPage.xaml - Orders Management with Table Layout following InventoryPage pattern -->
+<!-- This follows the same UI patterns as InventoryPage for consistency -->
+
+<ContentPage x:Class="InventoryManager.OrdersPage"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:converters="clr-namespace:InventoryManager.Converters"
+             Title="Orders Management"
+             BackgroundColor="White">
+
+    <!-- Define page resources including converters -->
+    <ContentPage.Resources>
+        <ResourceDictionary>
+            <converters:BoolToColorConverter x:Key="BoolToColorConverter" />
+        </ResourceDictionary>
+    </ContentPage.Resources>
+
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="New Order" Clicked="OnNewOrderClicked" IconImageSource="add_icon.png" />
+    </ContentPage.ToolbarItems>
+
+    <!-- RefreshView for pull-to-refresh functionality -->
+    <RefreshView x:Name="RefreshView" 
+                 Refreshing="OnRefreshing"
+                 RefreshColor="DarkBlue">
+
+        <ScrollView>
+            <VerticalStackLayout Spacing="15" Padding="15">
+
+                <!-- Header with Quick Stats -->
+                <Border BackgroundColor="DarkBlue" 
+                        StrokeShape="RoundRectangle 10"
+                        Stroke="Transparent"
+                        Padding="20"
+                        Shadow="{Shadow Brush=Black, Offset='2,2', Radius=4, Opacity=0.3}">
+                    <Grid RowDefinitions="Auto,Auto" 
+                          ColumnDefinitions="*,*,*">
+
+                        <Label Grid.Row="0" Grid.ColumnSpan="3"
+                               Text="Orders Overview"
+                               FontSize="18"
+                               FontAttributes="Bold"
+                               TextColor="White"
+                               HorizontalOptions="Center"
+                               Margin="0,0,0,10" />
+
+                        <StackLayout Grid.Row="1" Grid.Column="0" HorizontalOptions="Center">
+                            <Label x:Name="TotalOrdersLabel"
+                                   Text="0"
+                                   FontSize="24"
+                                   FontAttributes="Bold"
+                                   TextColor="White"
+                                   HorizontalOptions="Center" />
+                            <Label Text="Total Orders"
+                                   FontSize="12"
+                                   TextColor="LightGray"
+                                   HorizontalOptions="Center" />
+                        </StackLayout>
+
+                        <StackLayout Grid.Row="1" Grid.Column="1" HorizontalOptions="Center">
+                            <Label x:Name="PendingOrdersLabel"
+                                   Text="0"
+                                   FontSize="24"
+                                   FontAttributes="Bold"
+                                   TextColor="Orange"
+                                   HorizontalOptions="Center" />
+                            <Label Text="Pending"
+                                   FontSize="12"
+                                   TextColor="LightGray"
+                                   HorizontalOptions="Center" />
+                        </StackLayout>
+
+                        <StackLayout Grid.Row="1" Grid.Column="2" HorizontalOptions="Center">
+                            <Label x:Name="CompletedOrdersLabel"
+                                   Text="0"
+                                   FontSize="24"
+                                   FontAttributes="Bold"
+                                   TextColor="LightGreen"
+                                   HorizontalOptions="Center" />
+                            <Label Text="Completed"
+                                   FontSize="12"
+                                   TextColor="LightGray"
+                                   HorizontalOptions="Center" />
+                        </StackLayout>
+
+                    </Grid>
+                </Border>
+
+                <!-- Filters Section -->
+                <Border BackgroundColor="WhiteSmoke" 
+                        StrokeShape="RoundRectangle 8"
+                        Stroke="LightGray"
+                        Padding="15">
+                    <VerticalStackLayout Spacing="10">
+
+                        <Label Text="Filters" 
+                               FontSize="16" 
+                               FontAttributes="Bold" 
+                               TextColor="DarkBlue" />
+
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+
+                            <!-- Search Entry -->
+                            <Entry x:Name="SearchEntry"
+                                   Grid.Column="0"
+                                   Placeholder="Search orders..."
+                                   Text=""
+                                   TextChanged="OnSearchTextChanged"
+                                   ClearButtonVisibility="WhileEditing" />
+
+                            <!-- Status Filter -->
+                            <Picker x:Name="StatusFilterPicker"
+                                    Grid.Column="1"
+                                    Title="Filter by Status"
+                                    SelectedIndexChanged="OnStatusFilterChanged">
+                                <Picker.Items>
+                                    <x:String>All Orders</x:String>
+                                    <x:String>Pending Only</x:String>
+                                    <x:String>Completed Only</x:String>
+                                </Picker.Items>
+                            </Picker>
+
+                        </Grid>
+
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Orders Table -->
+                <Border BackgroundColor="White" 
+                        StrokeShape="RoundRectangle 8"
+                        Stroke="LightGray"
+                        Padding="0"
+                        Shadow="{Shadow Brush=Gray, Offset='1,1', Radius=3, Opacity=0.3}">
+
+                    <StackLayout Spacing="0">
+
+                        <!-- Table Header -->
+                        <Border BackgroundColor="DarkBlue" 
+                                StrokeShape="RoundRectangle 8,8,0,0"
+                                Stroke="Transparent"
+                                Padding="10,15">
+                            <Grid ColumnDefinitions="2*,1.5*,*,*,*,*"
+                                  ColumnSpacing="5">
+                                <Label Grid.Column="0" Text="Order Name" 
+                                       FontAttributes="Bold" TextColor="White" FontSize="14" />
+                                <Label Grid.Column="1" Text="Created" 
+                                       FontAttributes="Bold" TextColor="White" FontSize="14" />
+                                <Label Grid.Column="2" Text="Status" 
+                                       FontAttributes="Bold" TextColor="White" FontSize="14" 
+                                       HorizontalTextAlignment="Center" />
+                                <Label Grid.Column="3" Text="Items" 
+                                       FontAttributes="Bold" TextColor="White" FontSize="14" 
+                                       HorizontalTextAlignment="Center" />
+                                <Label Grid.Column="4" Text="Value" 
+                                       FontAttributes="Bold" TextColor="White" FontSize="14" 
+                                       HorizontalTextAlignment="Center" />
+                                <Label Grid.Column="5" Text="Actions" 
+                                       FontAttributes="Bold" TextColor="White" FontSize="14" 
+                                       HorizontalTextAlignment="Center" />
+                            </Grid>
+                        </Border>
+
+                        <!-- Loading Indicator -->
+                        <ActivityIndicator x:Name="LoadingIndicator"
+                                           IsVisible="False"
+                                           IsRunning="False"
+                                           Color="DarkBlue"
+                                           HeightRequest="50" />
+
+                        <!-- Table Content -->
+                        <CollectionView x:Name="OrdersCollectionView"
+                                        SelectionMode="None"
+                                        BackgroundColor="Transparent"
+                                        ItemSizingStrategy="MeasureAllItems">
+
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate>
+                                    <!-- Table Row -->
+                                    <Grid Padding="10,8"
+                                          ColumnDefinitions="2*,1.5*,*,*,*,*"
+                                          ColumnSpacing="5"
+                                          BackgroundColor="White">
+
+                                        <!-- Alternate row background -->
+                                        <Grid.Triggers>
+                                            <DataTrigger TargetType="Grid" 
+                                                         Binding="{Binding Source={RelativeSource Self}, Path=BindingContext}"
+                                                         Value="{x:Null}">
+                                                <Setter Property="BackgroundColor" Value="Transparent" />
+                                            </DataTrigger>
+                                        </Grid.Triggers>
+
+                                        <!-- Order Name & Notes -->
+                                        <StackLayout Grid.Column="0" Spacing="2">
+                                            <Label Text="{Binding OrderName}" 
+                                                   FontSize="14" 
+                                                   FontAttributes="Bold"
+                                                   TextColor="Black" />
+                                            <Label Text="{Binding Notes}" 
+                                                   FontSize="12" 
+                                                   TextColor="Gray"
+                                                   LineBreakMode="TailTruncation" />
+                                        </StackLayout>
+
+                                        <!-- Created Date -->
+                                        <StackLayout Grid.Column="1" Spacing="2">
+                                            <Label Text="{Binding CreatedDate, StringFormat='{0:MM/dd/yyyy}'}" 
+                                                   FontSize="14" 
+                                                   TextColor="Black" />
+                                            <Label Text="{Binding CreatedDate, StringFormat='{0:HH:mm}'}" 
+                                                   FontSize="12" 
+                                                   TextColor="Gray" />
+                                        </StackLayout>
+
+                                        <!-- Status with Color Coding -->
+                                        <Border Grid.Column="2" 
+                                                BackgroundColor="{Binding StatusColor}"
+                                                StrokeShape="RoundRectangle 12"
+                                                Stroke="Transparent"
+                                                Padding="8,4"
+                                                HorizontalOptions="Center">
+                                            <Label Text="{Binding StatusDisplayName}" 
+                                                   FontSize="12" 
+                                                   FontAttributes="Bold"
+                                                   TextColor="White"
+                                                   HorizontalOptions="Center" />
+                                        </Border>
+
+                                        <!-- Total Items -->
+                                        <Label Grid.Column="3" 
+                                               Text="{Binding TotalItems}" 
+                                               FontSize="14" 
+                                               TextColor="Black"
+                                               HorizontalTextAlignment="Center" />
+
+                                        <!-- Total Value -->
+                                        <Label Grid.Column="4" 
+                                               Text="{Binding TotalValue, StringFormat='${0:F2}'}" 
+                                               FontSize="14" 
+                                               TextColor="Black"
+                                               HorizontalTextAlignment="Center" />
+
+                                        <!-- Action Buttons -->
+                                        <StackLayout Grid.Column="5" 
+                                                     Orientation="Horizontal" 
+                                                     Spacing="5"
+                                                     HorizontalOptions="Center">
+
+                                            <!-- Edit Button -->
+                                            <Button Text="✏️" 
+                                                    FontSize="12"
+                                                    BackgroundColor="LightBlue"
+                                                    TextColor="White"
+                                                    CornerRadius="4"
+                                                    Padding="8,4"
+                                                    Clicked="OnEditOrderClicked"
+                                                    CommandParameter="{Binding Id}" />
+
+                                            <!-- Finalize Button (only for pending orders) -->
+                                            <Button Text="✅" 
+                                                    FontSize="12"
+                                                    BackgroundColor="Green"
+                                                    TextColor="White"
+                                                    CornerRadius="4"
+                                                    Padding="8,4"
+                                                    Clicked="OnFinalizeOrderClicked"
+                                                    CommandParameter="{Binding Id}"
+                                                    IsVisible="{Binding CanFinalize}" />
+
+                                        </StackLayout>
+
+                                        <!-- Row separator line -->
+                                        <BoxView Grid.ColumnSpan="6"
+                                                 BackgroundColor="LightGray"
+                                                 HeightRequest="1"
+                                                 VerticalOptions="End"
+                                                 Margin="0,5,0,0" />
+                                    </Grid>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+
+                            <!-- Empty State -->
+                            <CollectionView.EmptyView>
+                                <StackLayout Padding="20" HorizontalOptions="Center">
+                                    <Label Text="📋"
+                                           FontSize="48"
+                                           HorizontalOptions="Center" />
+                                    <Label Text="No orders found"
+                                           FontSize="16"
+                                           FontAttributes="Bold"
+                                           HorizontalOptions="Center"
+                                           TextColor="Gray" />
+                                    <Label Text="Create your first order to get started"
+                                           FontSize="12"
+                                           HorizontalOptions="Center"
+                                           TextColor="Gray"
+                                           Margin="0,5,0,0" />
+                                </StackLayout>
+                            </CollectionView.EmptyView>
+
+                        </CollectionView>
+
+                    </StackLayout>
+                </Border>
+
+                <!-- Action Buttons -->
+                <StackLayout Orientation="Horizontal" 
+                             Spacing="10"
+                             HorizontalOptions="FillAndExpand">
+                    <Button x:Name="NewOrderBtn"
+                            Text="➕ Create New Order"
+                            Clicked="OnNewOrderClicked"
+                            BackgroundColor="Green"
+                            TextColor="White"
+                            CornerRadius="5"
+                            HorizontalOptions="FillAndExpand" />
+                </StackLayout>
+
+            </VerticalStackLayout>
+        </ScrollView>
+    </RefreshView>
+
+</ContentPage>

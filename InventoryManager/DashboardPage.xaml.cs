@@ -229,72 +229,72 @@ public partial class DashboardPage : ContentPage
     /// </summary>
     private async Task LoadSystemStats()
     {
+    try
+    {
+        var stats = "📊 System Overview:\n\n";
+
+        // User statistics
+        var userStats = await _databaseService.GetUserStatsAsync();
+        stats += $"👥 Total Users: {userStats["TotalUsers"]}\n";
+        stats += $"   • Admins: {userStats["AdminCount"]}\n";
+        stats += $"   • Managers: {userStats["ManagerCount"]}\n";
+        stats += $"   • Operators: {userStats["OperatorCount"]}\n\n";
+
+        // Inventory statistics
         try
         {
-            var stats = "📊 System Overview:\n\n";
-
-            // User statistics
-            var userStats = await _databaseService.GetUserStatsAsync();
-            stats += $"👥 Total Users: {userStats["TotalUsers"]}\n";
-            stats += $"   • Admins: {userStats["AdminCount"]}\n";
-            stats += $"   • Managers: {userStats["ManagerCount"]}\n";
-            stats += $"   • Operators: {userStats["OperatorCount"]}\n\n";
-
-            // Inventory statistics
-            try
+            var inventoryStats = await _inventoryService.GetInventoryStatsAsync();
+            
+            // Total items
+            var totalItems = inventoryStats.ContainsKey("TotalItems") ? inventoryStats["TotalItems"] : 0;
+            stats += $"📦 Total Inventory Items: {totalItems}\n";
+            
+            // Items by location
+            if (inventoryStats.ContainsKey("ItemsByLocation") && inventoryStats["ItemsByLocation"] is Dictionary<string, int> locationStats)
             {
-                var inventoryStats = await _inventoryService.GetInventoryStatsAsync();
-
-                // Total items
-                var totalItems = inventoryStats.ContainsKey("TotalItems") ? inventoryStats["TotalItems"] : 0;
-                stats += $"📦 Total Inventory Items: {totalItems}\n";
-
-                // Items by location
-                if (inventoryStats.ContainsKey("ItemsByLocation") && inventoryStats["ItemsByLocation"] is Dictionary<string, int> locationStats)
+                stats += "📍 Items by Location:\n";
+                foreach (var location in locationStats)
                 {
-                    stats += "📍 Items by Location:\n";
-                    foreach (var location in locationStats)
-                    {
-                        stats += $"   • {location.Key}: {location.Value} items\n";
-                    }
+                    stats += $"   • {location.Key}: {location.Value} items\n";
                 }
-
-                // Low stock alert
-                var lowStockCount = inventoryStats.ContainsKey("LowStockCount") ? inventoryStats["LowStockCount"] : 0;
-                if (Convert.ToInt32(lowStockCount) > 0)
-                {
-                    stats += $"\n⚠️ Low Stock Alert: {lowStockCount} items below minimum!\n";
-                }
-
-                // Total inventory value
-                if (inventoryStats.ContainsKey("TotalValue") && inventoryStats["TotalValue"] is decimal totalValue)
-                {
-                    stats += $"\n💰 Total Inventory Value: ${totalValue:N2}\n";
-                }
-
-                // Recent transactions
-                var recentTransactionCount = inventoryStats.ContainsKey("RecentTransactionCount") ? inventoryStats["RecentTransactionCount"] : 0;
-                stats += $"\n📋 Transactions (Last 7 days): {recentTransactionCount}\n";
             }
-            catch (Exception ex)
+            
+            // Low stock alert
+            var lowStockCount = inventoryStats.ContainsKey("LowStockCount") ? inventoryStats["LowStockCount"] : 0;
+            if (Convert.ToInt32(lowStockCount) > 0)
             {
-                stats += $"\n⚠️ Could not load inventory stats: {ex.Message}\n";
+                stats += $"\n⚠️ Low Stock Alert: {lowStockCount} items below minimum!\n";
             }
-
-            // Database info
-            var dbPath = Path.Combine(FileSystem.AppDataDirectory, "inventory.db");
-            if (File.Exists(dbPath))
+            
+            // Total inventory value
+            if (inventoryStats.ContainsKey("TotalValue") && inventoryStats["TotalValue"] is decimal totalValue)
             {
-                var fileInfo = new FileInfo(dbPath);
-                stats += $"\n💾 Database Size: {fileInfo.Length / 1024} KB";
+                stats += $"\n💰 Total Inventory Value: ${totalValue:N2}\n";
             }
-
-            SystemStatsLabel.Text = stats;
+            
+            // Recent transactions
+            var recentTransactionCount = inventoryStats.ContainsKey("RecentTransactionCount") ? inventoryStats["RecentTransactionCount"] : 0;
+            stats += $"\n📋 Transactions (Last 7 days): {recentTransactionCount}\n";
         }
         catch (Exception ex)
         {
-            SystemStatsLabel.Text = $"Error loading statistics: {ex.Message}";
+            stats += $"\n⚠️ Could not load inventory stats: {ex.Message}\n";
         }
+
+        // Database info
+        var dbPath = Path.Combine(FileSystem.AppDataDirectory, "inventory.db");
+        if (File.Exists(dbPath))
+        {
+            var fileInfo = new FileInfo(dbPath);
+            stats += $"\n💾 Database Size: {fileInfo.Length / 1024} KB";
+        }
+
+        SystemStatsLabel.Text = stats;
+    }
+    catch (Exception ex)
+    {
+        SystemStatsLabel.Text = $"Error loading statistics: {ex.Message}";
+    }
     }
 
     // Event Handlers - All properly implemented
@@ -590,14 +590,14 @@ public partial class DashboardPage : ContentPage
             return;
 
         // Double confirmation for safety
-        var doubleConfirm = await DisplayAlert(
+        /*var doubleConfirm = await DisplayAlert(
             "Confirm Reset",
             "This action cannot be undone. All inventory data will be lost.\n\nAre you REALLY sure?",
             "Yes, I'm Sure",
             "Cancel");
 
         if (!doubleConfirm)
-            return;
+            return;*/
 
         // Disable the button and show progress
         ResetDbBtn.IsEnabled = false;

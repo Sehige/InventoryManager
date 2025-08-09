@@ -139,9 +139,10 @@ public partial class AppShell : Shell
         }
 
         // For all other pages, verify authentication
-        if (targetRoute.Contains("main") ||
+        /*if (targetRoute.Contains("main") ||
             targetRoute.Contains("dashboard") ||
-            targetRoute.Contains("inventory"))
+            targetRoute.Contains("inventory") ||
+            targetRoute.Contains("order"))*/
         {
             try
             {

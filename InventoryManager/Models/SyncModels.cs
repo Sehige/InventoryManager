@@ -20,7 +20,9 @@ namespace InventoryManager.Models
         /// <summary>Item is marked for deletion</summary>
         Deleted = 3,
         /// <summary>Item has a sync conflict that needs resolution</summary>
-        Conflict = 4
+        Conflict = 4,
+        /// <summary>Item failed to sync due to an error</summary>
+        PendingSync = 5,
     }
 
     /// <summary>

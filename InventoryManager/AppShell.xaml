@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<!-- AppShell.xaml - Application shell with navigation structure including Settings -->
-<!-- This defines the overall navigation structure of the app after login -->
+<!-- AppShell.xaml - UPDATED with Orders Tab -->
+<!-- Add Orders tab between Inventory and Settings -->
 
 <Shell x:Class="InventoryManager.AppShell"
        xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
@@ -56,6 +56,14 @@
             ContentTemplate="{DataTemplate local:InventoryPage}"
             Route="inventory" />
 
+        <!-- NEW: Orders Tab - Order management and tracking -->
+        <!-- This is the new Orders functionality following the same pattern -->
+        <ShellContent
+            Title="Orders"
+            Icon="orders.png"
+            ContentTemplate="{DataTemplate local:OrdersPage}"
+            Route="orders" />
+
         <!-- Settings Tab - For user preferences and language selection -->
         <ShellContent
             Title="Settings"
@@ -73,6 +81,13 @@
         Title="Add Item"
         ContentTemplate="{DataTemplate local:AddItemPopup}"
         Route="AddItemPopup"
+        Shell.PresentationMode="ModalAnimated" />
+
+    <!-- NEW: Order Edit Popup - Modal for creating/editing orders -->
+    <ShellContent
+        Title="Edit Order"
+        ContentTemplate="{DataTemplate local:OrderEditPopup}"
+        Route="OrderEditPopup"
         Shell.PresentationMode="ModalAnimated" />
 
 </Shell>
